@@ -18,6 +18,7 @@ all: $(patsubst %, bin/%, ${BINARIES})
 
 MAIN_DEPS =  \
 	puzzle1  \
+	puzzle2  \
 	main
 bin/main: $(patsubst %, build/%.o, ${MAIN_DEPS})
 

@@ -12,5 +12,6 @@
                                &_binary_puzzles_##name##_txt_start)}
 
 PUZZLE(1);
+PUZZLE(2);
 
 #undef PUZZLE
