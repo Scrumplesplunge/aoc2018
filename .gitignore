@@ -1,5 +1,3 @@
 .*
 !.gitignore
-/bin/
-/dep/
-/build/
+/solve

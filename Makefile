@@ -1,29 +1,10 @@
-include config.mk
-include rules.mk
+all: solve
 
-.PHONY: all
+run: all
+	./solve
 
-INPUTS=$(wildcard puzzles/*.txt)
-PUZZLE_O=${INPUTS:puzzles/%.txt=build/puzzle%.o}
+clean:
+	rm -f solve
 
-# Embed all the input files as objects.
-build/puzzle%.o: puzzles/%.txt
-	@echo Embedding puzzle$*
-	@mkdir -p build
-	@objcopy -I binary -O elf64-x86-64 -B i386 $^ $@
-
-BINARIES =  \
-	main
-all: $(patsubst %, bin/%, ${BINARIES})
-
-MAIN_DEPS =  \
-	day1  \
-	day2  \
-	day3  \
-	puzzle1  \
-	puzzle2  \
-	puzzle3  \
-	main
-bin/main: $(patsubst %, build/%.o, ${MAIN_DEPS})
-
--include ${DEPENDS}
+solve:
+	./build.sh $@
