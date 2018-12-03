@@ -8,11 +8,10 @@ provides a `std::string_view kPuzzleX` for each puzzle.
 
     $ make
     ./build.sh solve
-    ./build.sh solve
     Compiling /tmp/tmp.H3n0nQrXax/main.o
     Compiling /tmp/tmp.H3n0nQrXax/day1.o
     Compiling /tmp/tmp.H3n0nQrXax/day2.o
-    Compiling /tmp/tmp.H3n0nQrXax/day3.o
+    ...
     Linking solve
     $ ./solve
     Solve1A: ??? in 683us
