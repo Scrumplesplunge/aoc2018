@@ -4,7 +4,7 @@
 
 #include <iterator>
 #include <numeric>
-#include <set>
+#include <unordered_set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -17,11 +17,12 @@ int Solve1A() {
 int Solve1B() {
   std::istringstream input{std::string{kPuzzle1}};
   const std::vector<int> deltas{std::istream_iterator<int>{input}, {}};
-  std::set<int> seen;
+  std::unordered_set<int> seen;
   int frequency = 0;
-  for (int i = 0; seen.count(frequency) == 0; i++) {
-    seen.insert(frequency);
-    frequency += deltas[i % deltas.size()];
+  while (true) {
+    for (int x : deltas) {
+      if (!seen.insert(frequency).second) return frequency;
+      frequency += x;
+    }
   }
-  return frequency;
 }

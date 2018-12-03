@@ -6,5 +6,6 @@ run: all
 clean:
 	rm -f solve
 
+.PHONY: solve
 solve:
 	./build.sh $@

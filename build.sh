@@ -63,6 +63,13 @@ CXXFLAGS=(
   -std=c++17
   "-I$TEMP_DIR"
   -Ofast
+  -ffunction-sections
+  -fdata-sections
+  -flto
+)
+LDFLAGS=(
+  -Wl,--gc-sections
+  -s
 )
 
 function compile {
@@ -78,4 +85,4 @@ done
 
 # Link the full program.
 echo "Linking $1"
-${CXX} "${CXXFLAGS[@]}" "$TEMP_DIR"/*.o -o "$1"
+${CXX} "${CXXFLAGS[@]}" "${LDFLAGS[@]}" "$TEMP_DIR"/*.o -o "$1"
