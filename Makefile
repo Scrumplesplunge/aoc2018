@@ -17,8 +17,12 @@ BINARIES =  \
 all: $(patsubst %, bin/%, ${BINARIES})
 
 MAIN_DEPS =  \
+	day1  \
+	day2  \
+	day3  \
 	puzzle1  \
 	puzzle2  \
+	puzzle3  \
 	main
 bin/main: $(patsubst %, build/%.o, ${MAIN_DEPS})
 

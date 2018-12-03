@@ -1,7 +1,7 @@
 MAKEFILES = Makefile rules.mk config.mk
 
 .PHONY: default
-default: all
+default: opt
 
 # Build with optimized configuration.
 .PHONY: opt

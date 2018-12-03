@@ -13,5 +13,6 @@
 
 PUZZLE(1);
 PUZZLE(2);
+PUZZLE(3);
 
 #undef PUZZLE
