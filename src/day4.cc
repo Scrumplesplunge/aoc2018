@@ -31,16 +31,16 @@ struct LogEntry {
   std::variant<GuardStarts, FallsAsleep, WakesUp> data;
 };
 
+constexpr bool operator<(const LogEntry& left, const LogEntry& right) {
+  return left.when < right.when;
+}
+
 const std::regex kLogLinePattern{
     R"(\[(\d+)-(\d+)-(\d+) (\d+):(\d+)\] ()"
     //   ^ 1   ^ 2   ^ 3   ^ 4   ^ 5     ^ 6
     R"((Guard #(\d+) begins shift)|(falls asleep)|(wakes up)))",
     // ^ 7     ^ 8                 ^ 9            ^ 10
     std::regex::optimize};
-
-constexpr bool operator<(const LogEntry& left, const LogEntry& right) {
-  return left.when < right.when;
-}
 
 std::istream& operator>>(std::istream& input, LogEntry& entry) {
   std::string line;
