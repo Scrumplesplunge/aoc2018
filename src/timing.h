@@ -11,6 +11,7 @@
 #pragma once
 
 #include <chrono>
+#include <iostream>
 
 template <typename T>
 struct TimingResult {
