@@ -1,15 +1,20 @@
 #!/bin/bash
 
+INPUT_DIR="$PWD"
 TEMP_DIR="$(mktemp -d)"
+echo "Building in $TEMP_DIR."
+cd "$TEMP_DIR"
 function cleanup {
-  rm -r $TEMP_DIR
+  cd "$INPUT_DIR"
+  rm -r "$TEMP_DIR"
 }
 trap cleanup EXIT
 
-cp src/*.* "$TEMP_DIR"
+mkdir obj
+cp -r "$INPUT_DIR/"{puzzles,src} .
 
 # Build puzzles.h from all available puzzles in puzzles/*.txt
-cat >"$TEMP_DIR/puzzles.h" <<EOF
+cat >src/puzzles.h <<EOF
 #include <cstdint>
 #include <string_view>
 
@@ -25,18 +30,18 @@ EOF
 for puzzle in puzzles/*.txt; do
   puzzle_id="$(basename --suffix=.txt "$puzzle")"
   objcopy -I binary -O elf64-x86-64 -B i386  \
-          "$puzzle" "$TEMP_DIR/puzzle$puzzle_id.o"
-  echo "PUZZLE($puzzle_id);" >>"$TEMP_DIR/puzzles.h"
+          "$puzzle" "obj/puzzle$puzzle_id.o"
+  echo "PUZZLE($puzzle_id);" >>src/puzzles.h
 done
 
 # Build the main file from all available solutions in day*.h
-SOLUTIONS="$(grep -oh 'Solve[0-9][AB]' "$TEMP_DIR"/day*.h | sort -ui)"
+SOLUTIONS="$(grep -oh 'Solve[0-9][AB]' src/day*.h | sort -ui)"
 
-for day in "$TEMP_DIR"/day*.h; do
-  echo "#include \"$(basename "$day")\"" >> "$TEMP_DIR/main.cc"
+for day in src/day*.h; do
+  echo "#include \"$(basename "$day")\"" >> src/main.cc
 done
 
-cat >>"$TEMP_DIR/main.cc" <<EOF
+cat >> src/main.cc <<EOF
 
 #include "timing.h"
 #include "puzzles.h"
@@ -49,10 +54,10 @@ EOF
 
 for solution in $SOLUTIONS; do
   echo "    << \"$solution: \" << Time($solution) << \"\\n\""  \
-      >>"$TEMP_DIR/main.cc"
+      >> src/main.cc
 done
 
-cat >>"$TEMP_DIR/main.cc" <<EOF
+cat >> src/main.cc <<EOF
   ;
 }
 EOF
@@ -76,13 +81,15 @@ function compile {
   echo "Compiling $2"
   ${CXX} "${CXXFLAGS[@]}" -c "$1" -o "$2"
 }
-compile "$TEMP_DIR/main.cc" "$TEMP_DIR/main.o"
+compile "src/main.cc" "obj/main.o" &
 
-for day in "$TEMP_DIR"/day*.cc; do
+for day in src/day*.cc; do
   day_id="$(basename --suffix=.cc "$day")"
-  compile "$day" "$TEMP_DIR/$day_id.o"
+  compile "$day" "obj/$day_id.o" &
 done
+
+wait
 
 # Link the full program.
 echo "Linking $1"
-${CXX} "${CXXFLAGS[@]}" "${LDFLAGS[@]}" "$TEMP_DIR"/*.o -o "$1"
+${CXX} "${CXXFLAGS[@]}" "${LDFLAGS[@]}" obj/*.o -o "$INPUT_DIR/$1"
