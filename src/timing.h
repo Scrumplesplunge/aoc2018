@@ -22,8 +22,6 @@ struct TimingResult {
 template <typename T>
 TimingResult(T, std::chrono::nanoseconds)->TimingResult<T>;
 
-constexpr int kRepeats = 10;
-
 template <typename T>
 std::ostream& operator<<(std::ostream& output, const TimingResult<T>& result) {
   using std::literals::operator "" ns;
@@ -45,14 +43,8 @@ std::ostream& operator<<(std::ostream& output, const TimingResult<T>& result) {
 
 template <typename F>
 auto Time(F&& functor) {
+  auto start = std::chrono::steady_clock::now();
   auto result = functor();
-  std::chrono::nanoseconds samples[kRepeats];
-  for (int i = 0; i < kRepeats; i++) {
-    auto start = std::chrono::steady_clock::now();
-    (void) functor();
-    auto end = std::chrono::steady_clock::now();
-    samples[i] = end - start;
-  }
-  sort(begin(samples), end(samples));
-  return TimingResult{std::move(result), samples[kRepeats / 2]};
+  auto end = std::chrono::steady_clock::now();
+  return TimingResult{std::move(result), end - start};
 }

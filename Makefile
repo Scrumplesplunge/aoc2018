@@ -1,4 +1,8 @@
-all: solve
+debug: MODE=debug
+release: MODE=release
+
+debug: solve
+release: solve
 
 run: all
 	./solve
@@ -8,4 +12,4 @@ clean:
 
 .PHONY: solve
 solve:
-	./build.sh $@
+	./build.sh ${MODE} $@

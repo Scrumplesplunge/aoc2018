@@ -1,5 +1,13 @@
 #!/bin/bash
 
+if [[ -z $1 ]] || [[ -z $2 ]]; then
+  >&2 echo "Usage: ./build.sh [debug|release] <output_name>"
+  exit 1
+fi
+
+MODE="$1"
+OUTPUT="$2"
+
 INPUT_DIR="$PWD"
 TEMP_DIR="$(mktemp -d)"
 echo "Building in $TEMP_DIR."
@@ -67,15 +75,26 @@ CXX="clang++ -stdlib=libc++"
 CXXFLAGS=(
   -std=c++17
   "-I$TEMP_DIR"
-  -Ofast
-  -ffunction-sections
-  -fdata-sections
-  -flto
 )
-LDFLAGS=(
-  -Wl,--gc-sections
-  -s
-)
+LDFLAGS=()
+
+if [[ "$MODE" == debug ]]; then
+  CXXFLAGS+=(
+    -g
+  )
+else
+  CXXFLAGS+=(
+    -Ofast
+    -DNDEBUG
+    -ffunction-sections
+    -fdata-sections
+    -flto
+  )
+  LDFLAGS+=(
+    -Wl,--gc-sections
+    -s
+  )
+fi
 
 function compile {
   echo "Compiling $2"
@@ -91,5 +110,5 @@ done
 wait
 
 # Link the full program.
-echo "Linking $1"
-${CXX} "${CXXFLAGS[@]}" "${LDFLAGS[@]}" obj/*.o -o "$INPUT_DIR/$1"
+echo "Linking $OUTPUT"
+${CXX} "${CXXFLAGS[@]}" "${LDFLAGS[@]}" obj/*.o -o "$INPUT_DIR/$OUTPUT"
