@@ -6,6 +6,7 @@
 #include <regex>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <variant>
@@ -35,33 +36,41 @@ constexpr bool operator<(const LogEntry& left, const LogEntry& right) {
   return left.when < right.when;
 }
 
-const std::regex kLogLinePattern{
-    R"(\[(\d+)-(\d+)-(\d+) (\d+):(\d+)\] ()"
-    //   ^ 1   ^ 2   ^ 3   ^ 4   ^ 5     ^ 6
-    R"((Guard #(\d+) begins shift)|(falls asleep)|(wakes up)))",
-    // ^ 7     ^ 8                 ^ 9            ^ 10
-    std::regex::optimize};
+int svtoi(std::string_view input) {
+  const char* begin = input.data();
+  char* end = nullptr;
+  int result = std::strtol(begin, &end, 10);
+  assert(begin != end);
+  return result;
+}
 
 std::istream& operator>>(std::istream& input, LogEntry& entry) {
-  std::string line;
-  if (!std::getline(input, line)) return input;
-  std::smatch match;
-  if (!std::regex_match(line, match, kLogLinePattern)) {
-    input.setstate(std::ios_base::failbit);
-    return input;
-  }
-  entry.when.year = stoi(match[1]);
-  entry.when.month = stoi(match[2]);
-  entry.when.day = stoi(match[3]);
-  entry.when.hour = stoi(match[4]);
-  entry.when.minute = stoi(match[5]);
-  if (match.length(7) > 0) {
-    entry.data = GuardStarts{stoi(match[8])};
-  } else if (match.length(9) > 0) {
-    entry.data = FallsAsleep{};
-  } else {
-    assert(match.length(10) > 0);
-    entry.data = WakesUp{};
+  std::string line_data;
+  if (!std::getline(input, line_data)) return input;
+  std::string_view line{line_data};
+  assert(line.length() >= 20);
+  assert(line[17] == ']');
+  // [YYYY-mm-dd HH:MM] Message
+  //  ^1   ^6 ^9 ^12^15 ^19
+  entry.when.year = svtoi(line.substr(1));
+  entry.when.month = svtoi(line.substr(6));
+  entry.when.day = svtoi(line.substr(9));
+  entry.when.hour = svtoi(line.substr(12));
+  entry.when.minute = svtoi(line.substr(15));
+  switch (line[19]) {
+    case 'G':
+      // [YYYY-mm-dd HH:MM] Guard #N begins shift
+      //                           ^26
+      entry.data = GuardStarts{svtoi(line.substr(26))};
+      break;
+    case 'f':
+      entry.data = FallsAsleep{};
+      break;
+    case 'w':
+      entry.data = WakesUp{};
+      break;
+    default:
+      assert(false);
   }
   return input;
 }
