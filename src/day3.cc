@@ -7,6 +7,7 @@
 #include <regex>
 #include <sstream>
 #include <string>
+#include <string_view>
 
 namespace {
 
@@ -19,23 +20,23 @@ struct Claim {
   Rectangle rectangle;
 };
 
-const std::regex kElfClaimRegex{
-    R"(^#([0-9]+) @ ([0-9]+),([0-9]+): ([0-9]+)x([0-9]+))"};
-//       ^ 1        ^ 2      ^ 3       ^ 4      ^ 5
+int svtoi(std::string_view input) {
+  const char* begin = input.data();
+  char* end = nullptr;
+  int result = std::strtol(begin, &end, 10);
+  assert(begin != end);
+  return result;
+}
 
 std::istream& operator>>(std::istream& input, Claim& claim) {
-  std::string line;
-  if (!std::getline(input, line)) return input;
-  std::smatch match;
-  if (!std::regex_match(line, match, kElfClaimRegex)) {
-    input.setstate(std::ios_base::failbit);
-    return input;
-  }
-  claim.id = stoi(match[1]);
-  claim.rectangle.x = stoi(match[2]);
-  claim.rectangle.y = stoi(match[3]);
-  claim.rectangle.width = stoi(match[4]);
-  claim.rectangle.height = stoi(match[5]);
+  std::string line_data;
+  if (!std::getline(input, line_data)) return input;
+  std::string_view line{line_data};
+  claim.id = svtoi(line.substr(1));
+  claim.rectangle.x = svtoi(line.substr(line.find('@') + 1));
+  claim.rectangle.y = svtoi(line.substr(line.find(',') + 1));
+  claim.rectangle.width = svtoi(line.substr(line.find(':') + 1));
+  claim.rectangle.height = svtoi(line.substr(line.find('x') + 1));
   return input;
 }
 
