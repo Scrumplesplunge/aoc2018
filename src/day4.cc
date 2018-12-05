@@ -2,14 +2,16 @@
 
 #include "puzzles.h"
 
+#include <algorithm>
+#include <cassert>
 #include <iostream>
-#include <regex>
+#include <iterator>
 #include <sstream>
 #include <string>
 #include <string_view>
 #include <unordered_map>
-#include <unordered_set>
 #include <variant>
+#include <vector>
 
 namespace {
 

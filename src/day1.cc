@@ -12,7 +12,7 @@
 
 int Solve1A() {
   std::istringstream input{std::string{kPuzzle1}};
-  return std::reduce(std::istream_iterator<int>{input}, {});
+  return reduce(std::istream_iterator<int>{input}, {});
 }
 
 int Solve1B() {

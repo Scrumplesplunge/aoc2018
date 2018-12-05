@@ -3,6 +3,7 @@
 #include "puzzles.h"
 
 #include <array>
+#include <cassert>
 #include <iostream>
 #include <regex>
 #include <sstream>
