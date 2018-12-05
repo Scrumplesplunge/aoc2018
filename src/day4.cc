@@ -13,18 +13,22 @@
 
 namespace {
 
-enum class GuardStarts : int {};
-enum class FallsAsleep {};
-enum class WakesUp {};
+enum class GuardStarts : short {};
+enum class FallsAsleep : short {};
+enum class WakesUp : short {};
 
 struct DateTime {
-  int year, month, day, hour, minute;
+  unsigned char minute, hour, day, month;
+  unsigned int year;
 };
 
 constexpr bool operator<(const DateTime& left, const DateTime& right) {
-  auto [ay, am, ad, ah, amin] = left;
-  auto [by, bm, bd, bh, bmin] = right;
-  return std::tie(ay, am, ad, ah, amin) < std::tie(by, bm, bd, bh, bmin);
+  using ull = unsigned long long;
+  ull a = ull{left.year} << 32 | ull{left.month} << 24 | ull{left.day} << 16 |
+          ull{left.hour} << 8 | ull{left.minute};
+  ull b = ull{right.year} << 32 | ull{right.month} << 24 |
+          ull{right.day} << 16 | ull{right.hour} << 8 | ull{right.minute};
+  return a < b;
 }
 
 struct LogEntry {
@@ -61,7 +65,7 @@ std::istream& operator>>(std::istream& input, LogEntry& entry) {
     case 'G':
       // [YYYY-mm-dd HH:MM] Guard #N begins shift
       //                           ^26
-      entry.data = GuardStarts{svtoi(line.substr(26))};
+      entry.data = GuardStarts{static_cast<short>(svtoi(line.substr(26)))};
       break;
     case 'f':
       entry.data = FallsAsleep{};
@@ -76,21 +80,27 @@ std::istream& operator>>(std::istream& input, LogEntry& entry) {
 }
 
 struct GuardEntry {
+  int guard_id;
   int total_minutes = 0;
   std::array<char, 60> frequency_per_minute;
 };
 
-std::unordered_map<int, GuardEntry> SleepPerGuard() {
+std::vector<GuardEntry> sleep_per_guard;
+std::vector<GuardEntry> SleepPerGuard() {
   std::istringstream input{std::string{kPuzzle4}};
   std::vector<LogEntry> entries{std::istream_iterator<LogEntry>{input}, {}};
   sort(begin(entries), end(entries));
   assert(std::holds_alternative<GuardStarts>(entries[0].data));
-  int current_guard = -1;
-  std::unordered_map<int, GuardEntry> sleep_per_guard;
+  std::vector<GuardEntry> sleep_per_guard;
+  std::unordered_map<int, std::size_t> guard_map;
+  GuardEntry* current_guard = nullptr;
   int asleep_at_min = -1;
   for (const LogEntry& entry : entries) {
     if (const auto* guard = std::get_if<GuardStarts>(&entry.data)) {
-      current_guard = static_cast<int>(*guard);
+      short guard_id = static_cast<short>(*guard);
+      auto [i, is_new] = guard_map.emplace(guard_id, sleep_per_guard.size());
+      if (is_new) sleep_per_guard.emplace_back().guard_id = guard_id;
+      current_guard = &sleep_per_guard[i->second];
       asleep_at_min = -1;
     } else if (std::holds_alternative<FallsAsleep>(entry.data)) {
       assert(asleep_at_min == -1);
@@ -99,10 +109,9 @@ std::unordered_map<int, GuardEntry> SleepPerGuard() {
     } else if (std::holds_alternative<WakesUp>(entry.data)) {
       assert(asleep_at_min != -1);
       assert(entry.when.hour == 0);
-      auto& guard_entry = sleep_per_guard[current_guard];
-      guard_entry.total_minutes += entry.when.minute - asleep_at_min;
+      current_guard->total_minutes += entry.when.minute - asleep_at_min;
       for (int i = asleep_at_min; i < entry.when.minute; i = (i + 1) % 60)
-        guard_entry.frequency_per_minute[i]++;
+        current_guard->frequency_per_minute[i]++;
       asleep_at_min = -1;
     }
   }
@@ -117,26 +126,21 @@ const auto* MostSleptMinute(const GuardEntry& entry) {
 }  // namespace
 
 int Solve4A() {
-  auto sleep_per_guard = SleepPerGuard();
+  sleep_per_guard = SleepPerGuard();
   auto i = max_element(begin(sleep_per_guard), end(sleep_per_guard),
                        [](const auto& a, const auto& b) {
-                         return a.second.total_minutes < b.second.total_minutes;
+                         return a.total_minutes < b.total_minutes;
                        });
-  const auto& [guard_id, guard_entry] = *i;
-  int most_slept_minute =
-      MostSleptMinute(guard_entry) - begin(guard_entry.frequency_per_minute);
-  return guard_id * most_slept_minute;
+  int most_slept_minute = MostSleptMinute(*i) - begin(i->frequency_per_minute);
+  return i->guard_id * most_slept_minute;
 }
 
 int Solve4B() {
-  auto sleep_per_guard = SleepPerGuard();
+  assert(!sleep_per_guard.empty());
   auto i = max_element(begin(sleep_per_guard), end(sleep_per_guard),
                        [&](const auto& a, const auto& b) {
-                         return *MostSleptMinute(a.second) <
-                                *MostSleptMinute(b.second);
+                         return *MostSleptMinute(a) < *MostSleptMinute(b);
                        });
-  auto [guard_id, guard_entry] = *i;
-  int minute =
-      MostSleptMinute(guard_entry) - begin(guard_entry.frequency_per_minute);
-  return guard_id * minute;
+  int minute = MostSleptMinute(*i) - begin(i->frequency_per_minute);
+  return i->guard_id * minute;
 }
