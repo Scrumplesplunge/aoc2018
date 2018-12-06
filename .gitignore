@@ -1,3 +1,5 @@
 .*
 !.gitignore
 /solve
+/perf.data
+/perf.data.old
