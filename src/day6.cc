@@ -37,8 +37,10 @@ constexpr Coordinate operator-(Coordinate a, Coordinate b) {
                     static_cast<Dimension>(a.y - b.y)};
 }
 
-int Distance(Coordinate a, Coordinate b) {
-  return std::abs(a.x - b.x) + std::abs(a.y - b.y);
+constexpr auto abs(Dimension x) { return x < 0 ? -x : x; }
+
+constexpr int Distance(Coordinate a, Coordinate b) {
+  return abs(a.x - b.x) + abs(a.y - b.y);
 }
 
 struct Input {
@@ -106,18 +108,21 @@ int Solve6A() {
   // Assumption: any coordinate which is closest to some square on the edge will
   // have infinite area as it will continue to be closest to some squares on the
   // surrounding ring and this applies inductively.
-  std::bitset<std::numeric_limits<Id>::max() + 1> blacklisted_coordinates;
+  bool edge[std::numeric_limits<Id>::max() + 1] = {};
   int last_row_offset = (size.y - 1) * size.x;
-  for (Dimension x = 0; x < size.x; x++) {
-    if (auto* id = std::get_if<Id>(&grid_buffer[x]))
-      blacklisted_coordinates.set(*id);
-    if (auto* id = std::get_if<Id>(&grid_buffer[last_row_offset + x]))
-      blacklisted_coordinates.set(*id);
-  }
+  constexpr auto blacklist_edge = [](int offset, int step, int limit,
+                                     const Closest* grid, bool* edge) {
+    for (int i = offset; i < limit; i += step) {
+      if (auto* id = std::get_if<Id>(&grid[i])) edge[*id] = true;
+    }
+  };
+  blacklist_edge(0, 1, size.x, grid_buffer.data(), edge);
+  blacklist_edge((size.y - 1) * size.x, 1, size.x, grid_buffer.data(), edge);
+  blacklist_edge(0, size.x, size.x * size.y, grid_buffer.data(), edge);
+  blacklist_edge(size.x - 1, size.x, size.x * size.y, grid_buffer.data(), edge);
   int max_area = 0;
   for (Id i = 0; i < n; i++) {
-    if (blacklisted_coordinates.test(i)) continue;
-    max_area = std::max(max_area, areas[i]);
+    if (!edge[i]) max_area = std::max(max_area, areas[i]);
   }
   return max_area;
 }
