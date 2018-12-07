@@ -38,7 +38,7 @@ struct WorkEntry {
 };
 
 constexpr bool operator>(WorkEntry a, WorkEntry b) {
-  return a.finish_time > b.finish_time;
+  return std::tie(a.finish_time, a.index) > std::tie(b.finish_time, b.index);
 }
 
 }  // namespace
