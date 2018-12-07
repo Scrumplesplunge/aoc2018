@@ -49,39 +49,12 @@ for puzzle in puzzles/*.txt; do
   echo "PUZZLE($puzzle_id);" >>src/puzzles.h
 done
 
-# Build the main file from all available solutions in day*.h
-SOLUTIONS="$(grep -oh 'Solve[0-9][AB]' src/day*.h | sort -ui)"
-
-for day in src/day*.h; do
-  echo "#include \"$(basename "$day")\"" >> src/main.cc
-done
-
-cat >> src/main.cc <<EOF
-
-#include "timing.h"
-#include "puzzles.h"
-
-#include <iostream>
-
-$(cat src/allocation.cc)
-
-int main() {
-  std::cout
-EOF
-
-for solution in $SOLUTIONS; do
-  echo "    << \"$solution: \" << Time($solution) << \"\\n\""  \
-      >> src/main.cc
-done
-
-cat >> src/main.cc <<EOF
-  ;
-  dump_allocation_stats();
-}
-EOF
-
 # Compile each source file.
 CXX="clang++ -stdlib=libc++"
+if [[ ! -d /usr/include/c++/v1 ]]; then
+  echo 'No libc++ headers detected. Reverting to libstdc++.'
+  CXX="clang++"
+fi
 CXXFLAGS=(
   -std=c++17
   "-I$TEMP_DIR"
@@ -110,14 +83,51 @@ function compile {
   echo "Compiling $2"
   ${CXX} "${CXXFLAGS[@]}" -c "$1" -o "$2"
 }
-compile "src/main.cc" "obj/main.o" &
 
 for day in src/day*.cc; do
   day_id="$(basename --suffix=.cc "$day")"
   compile "$day" "obj/$day_id.o" &
 done
-
 wait
+
+# Build the main file from all available solutions.
+SOLUTIONS="$(
+  for day in obj/day*.o; do
+    day_id="$(basename --suffix=.o "$day")"
+    cat "src/$day_id.cc"
+  done |
+  grep -ohP '^.*\bSolve[0-9]+[AB]\(\)' |
+  sort -ui
+)"
+
+cat >> src/main.cc <<EOF
+
+#include "timing.h"
+#include "puzzles.h"
+
+#include <iostream>
+
+$(
+  echo "$SOLUTIONS" |
+  while read solution; do
+    echo "$solution;"
+  done
+)
+
+$(cat src/allocation.cc)
+
+int main() {
+  std::cout $(
+    grep -oP '\bSolve[0-9]+[AB]\b' <<< "$SOLUTIONS" |
+    while read solution; do
+      echo "    << \"$solution: \" << Time($solution) << \"\\n\""
+    done
+  );
+  dump_allocation_stats();
+}
+EOF
+
+compile src/main.cc obj/main.o
 
 # Link the full program.
 echo "Linking $OUTPUT"
