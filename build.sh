@@ -56,6 +56,8 @@ cat >> src/main.cc <<EOF
 
 #include <iostream>
 
+$(cat src/allocation.cc)
+
 int main() {
   std::cout
 EOF
@@ -67,6 +69,7 @@ done
 
 cat >> src/main.cc <<EOF
   ;
+  dump_allocation_stats();
 }
 EOF
 

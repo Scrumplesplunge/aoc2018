@@ -87,7 +87,6 @@ struct GuardEntry {
   std::array<char, 60> frequency_per_minute;
 };
 
-std::vector<GuardEntry> sleep_per_guard;
 std::vector<GuardEntry> SleepPerGuard() {
   std::istringstream input{std::string{kPuzzle4}};
   std::vector<LogEntry> entries{std::istream_iterator<LogEntry>{input}, {}};
@@ -128,7 +127,7 @@ const auto* MostSleptMinute(const GuardEntry& entry) {
 }  // namespace
 
 int Solve4A() {
-  sleep_per_guard = SleepPerGuard();
+  auto sleep_per_guard = SleepPerGuard();
   auto i = max_element(begin(sleep_per_guard), end(sleep_per_guard),
                        [](const auto& a, const auto& b) {
                          return a.total_minutes < b.total_minutes;
@@ -138,7 +137,7 @@ int Solve4A() {
 }
 
 int Solve4B() {
-  assert(!sleep_per_guard.empty());
+  auto sleep_per_guard = SleepPerGuard();
   auto i = max_element(begin(sleep_per_guard), end(sleep_per_guard),
                        [&](const auto& a, const auto& b) {
                          return *MostSleptMinute(a) < *MostSleptMinute(b);
