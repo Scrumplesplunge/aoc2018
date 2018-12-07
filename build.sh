@@ -119,6 +119,7 @@ $(cat src/allocation.cc)
 int main() {
   std::cout $(
     grep -oP '\bSolve[0-9]+[AB]\b' <<< "$SOLUTIONS" |
+    sort -ui |
     while read solution; do
       echo "    << \"$solution: \" << Time($solution) << \"\\n\""
     done
