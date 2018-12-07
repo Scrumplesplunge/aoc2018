@@ -1,5 +1,3 @@
-#include "day1.h"
-
 #include "puzzles.h"
 
 #include <iterator>

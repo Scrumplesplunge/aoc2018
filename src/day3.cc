@@ -1,5 +1,3 @@
-#include "day3.h"
-
 #include "puzzles.h"
 
 #include <array>
