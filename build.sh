@@ -35,10 +35,17 @@ cat >src/puzzles.h <<EOF
                                &_binary_puzzles_##name##_txt_start)}
 EOF
 
+# Discover the parameters for objcopy.
+echo 'int main(){}' > info_check.c
+gcc -c info_check.c -o info_check.o
+info="$(objdump -f info_check.o)"
+format="$(grep -oP '(?<=file format )[^\s]+' <<< "$info")"
+arch="$(grep -oP '(?<=architecture: )[^,]+' <<< "$info")"
+>&2 echo "Deduced format=$format, arch=$arch."
+
 for puzzle in puzzles/*.txt; do
   puzzle_id="$(basename --suffix=.txt "$puzzle")"
-  objcopy -I binary -O elf64-x86-64 -B i386  \
-          "$puzzle" "obj/puzzle$puzzle_id.o"
+  objcopy -I binary -O "$format" -B "$arch" "$puzzle" "obj/puzzle$puzzle_id.o"
   echo "PUZZLE($puzzle_id);" >>src/puzzles.h
 done
 
