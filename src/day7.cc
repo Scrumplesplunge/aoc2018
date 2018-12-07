@@ -36,7 +36,7 @@ struct WorkEntry {
 };
 
 constexpr bool operator>(WorkEntry a, WorkEntry b) {
-  return std::tie(a.finish_time, a.index) > std::tie(b.finish_time, b.index);
+  return a.finish_time > b.finish_time;
 }
 
 }  // namespace
@@ -83,26 +83,23 @@ int Solve7B() {
                         [](bool x) { return x; });
   };
   std::string order;
-  order.reserve(26);
   std::priority_queue<WorkEntry, std::vector<WorkEntry>, std::greater<>> queue;
   int time = 0;
   while (true) {
-    for (const auto& target : dependencies) {
+    for (char i = 0; i < 26; i++) {
       constexpr int kNumWorkers = 1 + 4;  // You and four elves.
       if (queue.size() == kNumWorkers) break;  // Already busy.
-      char index = &target - &dependencies[0];
-      if (!started[index] && is_ready(target)) {
-        started[index] = true;
-        queue.push(WorkEntry{index, time + 61 + index});
+      if (!started[i] && is_ready(dependencies[i])) {
+        started[i] = true;
+        queue.push(WorkEntry{i, time + 61 + i});
       }
     }
     if (queue.empty()) break;  // No further progress is possible.
-    WorkEntry first = queue.top();
-    queue.pop();
-    time = first.finish_time;
-    order.push_back(first.index + 'A');
-    for (auto& target : dependencies) target[first.index] = false;
+    time = queue.top().finish_time;
+    while (!queue.empty() && queue.top().finish_time == time) {
+      for (auto& target : dependencies) target[queue.top().index] = false; 
+      queue.pop();
+    }
   }
-  assert(order.length() == 26);
   return time;
 }
