@@ -1,6 +1,7 @@
 #include "puzzles.h"
 
 #include <algorithm>
+#include <cassert>
 #include <iterator>
 #include <numeric>
 #include <sstream>
