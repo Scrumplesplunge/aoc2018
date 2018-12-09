@@ -27,22 +27,12 @@ class CircularBuffer {
 
   void rotate_forward(int amount) {
     assert(amount >= 0);
-    if (empty()) return;
-    for (int i = 0; i < amount; i++) {
-      int f = front();
-      pop_front();
-      push_back(f);
-    }
+    for (int i = 0; i < amount; i++) push_back(pop_front());
   }
 
   void rotate_backward(int amount) {
     assert(amount >= 0);
-    if (empty()) return;
-    for (int i = 0; i < amount; i++) {
-      int b = back();
-      pop_back();
-      push_front(b);
-    }
+    for (int i = 0; i < amount; i++) push_front(pop_back());
   }
 
   void push_back(int value) {
@@ -57,31 +47,19 @@ class CircularBuffer {
     *begin_ = value;
   }
 
-  int operator[](int i) const {
-    assert(0 <= i && i < size());
-    return *index(i);
-  }
-
   bool empty() const { return begin_ == end_; }
 
-  int front() const {
+  int pop_front() {
     assert(!empty());
-    return *begin_;
-  }
-
-  int back() const {
-    assert(!empty());
-    return *index(size() - 1);
-  }
-
-  void pop_front() {
-    assert(!empty());
+    int result = *begin_;
     begin_ = begin_ + 1 == buffer_end_ ? buffer_.get() : begin_ + 1;
+    return result;
   }
 
-  void pop_back() {
+  int pop_back() {
     assert(!empty());
     end_ = end_ == buffer_.get() ? buffer_end_ - 1 : end_ - 1;
+    return *end_;
   }
 
   int size() const {
@@ -113,12 +91,8 @@ long long Solve(int num_players, int num_marbles) {
   int player_index = 0;
   for (int next_marble = 1; next_marble < num_marbles; next_marble++) {
     if (next_marble % 23 == 0) {
-      int n = marbles.size();
-      assert(n > 7);
       marbles.rotate_backward(7);
-      int front = marbles.front();
-      marbles.pop_front();
-      scores[player_index] += front + next_marble;
+      scores[player_index] += marbles.pop_front() + next_marble;
     } else {
       marbles.rotate_forward(2);
       marbles.push_front(next_marble);
