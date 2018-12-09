@@ -1,3 +1,6 @@
+#include <cassert>
+#include <cstdint>
+
 struct {
   std::size_t usage, peak_usage;
   std::size_t allocations, deallocations;
