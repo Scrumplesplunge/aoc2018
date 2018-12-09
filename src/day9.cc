@@ -41,20 +41,22 @@ class CircularBuffer {
 
   void push_back(int value) {
     assert(size_ < max_size_);
-    buffer_[(position_ + size_) % max_size_] = value;
+    buffer_[wrap(position_ + size_)] = value;
     size_++;
   }
 
   void push_front(int value) {
     assert(size_ < max_size_);
     position_--;
-    buffer_[(position_ + max_size_) % max_size_] = value;
+    buffer_[wrap(position_ + max_size_)] = value;
     size_++;
   }
 
   int operator[](int index) const {
     assert(0 <= index && index < size_);
-    return buffer_[(position_ + index) % max_size_];
+    int i = position_ + index;
+    if (i >= max_size_) i -= max_size_;
+    return buffer_[i];
   }
 
   int front() const { return operator[](0); }
@@ -74,6 +76,12 @@ class CircularBuffer {
   int size() const { return size_; }
 
  private:
+  constexpr bool wrap(int index) {
+    assert(index > 0);
+    int i = position_ + index;
+    return i < max_size_ ? i : i - max_size_;
+  }
+
   const std::unique_ptr<int[]> buffer_;
   const int max_size_;
   int position_ = 0;
@@ -87,8 +95,9 @@ long long Solve(int num_players, int num_marbles) {
   // The active range of marbles is in 0..next_marble with the current marble
   // being the one at the indicated position.
   int player_index = 0;
-  for (int player_index = 0, next_marble = 1; next_marble < num_marbles;
-       player_index = (player_index + 1) % num_players, next_marble++) {
+  for (int next_marble = 1; next_marble < num_marbles; next_marble++) {
+    player_index++;
+    if (player_index == num_players) player_index = 0;
     if (next_marble % 23 == 0) {
       int n = marbles.size();
       assert(n > 7);
