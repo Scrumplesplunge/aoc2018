@@ -70,12 +70,6 @@ class CircularBuffer {
   int max_size() const { return buffer_end_ - buffer_.get(); }
 
  private:
-  constexpr int* index(int i) const {
-    assert(0 <= i && i < max_size());
-    int* j = begin_ + i;
-    return j < buffer_end_ ? j : j - max_size();
-  }
-
   const std::unique_ptr<int[]> buffer_;
   int* begin_;
   int* end_;
@@ -105,34 +99,9 @@ long long Solve(int num_players, int num_marbles) {
   return *i;
 }
 
-void Tests() {
-  struct TestCase {
-    const char* name;
-    int num_players, last_marble;
-    long long expected_score;
-  };
-  constexpr TestCase kTestCases[] = {
-    {"#1", 10, 1618, 8317},
-    {"#2", 13, 7999, 146373},
-    {"#3", 17, 1104, 2764},
-    {"#4", 21, 6111, 54718},
-    {"#5", 30, 5807, 37305},
-  };
-  std::cout << '\n';
-  for (auto test : kTestCases) {
-    auto result = Time([&] {
-      return Solve(test.num_players, test.last_marble + 1);
-    });
-    std::cout << test.name << ": " << result << ": "
-              << (result.value == test.expected_score ? "success" : "failure")
-              << '\n';
-  }
-}
-
 }  // namespace
 
 long long Solve9A() {
-  Tests();
   // N players; last marble is worth M points
   // ^ num_players                   ^ num_marbles
   int num_players = svtoi(kPuzzle9);
