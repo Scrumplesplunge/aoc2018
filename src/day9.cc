@@ -1,4 +1,5 @@
 #include "puzzles.h"
+#include "timing.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -23,6 +24,7 @@ class CircularBuffer {
 
   void rotate_forward(int amount) {
     assert(amount >= 0);
+    if (empty()) return;
     for (int i = 0; i < amount; i++) {
       int f = front();
       pop_front();
@@ -32,6 +34,7 @@ class CircularBuffer {
 
   void rotate_backward(int amount) {
     assert(amount >= 0);
+    if (empty()) return;
     for (int i = 0; i < amount; i++) {
       int b = back();
       pop_back();
@@ -41,30 +44,37 @@ class CircularBuffer {
 
   void push_back(int value) {
     assert(size_ < max_size_);
-    buffer_[wrap(position_ + size_)] = value;
+    buffer_[index(size_)] = value;
     size_++;
   }
 
   void push_front(int value) {
     assert(size_ < max_size_);
-    position_--;
-    buffer_[wrap(position_ + max_size_)] = value;
+    position_ = position_ == 0 ? max_size_ - 1 : position_ - 1;
+    buffer_[position_] = value;
     size_++;
   }
 
-  int operator[](int index) const {
-    assert(0 <= index && index < size_);
-    int i = position_ + index;
-    if (i >= max_size_) i -= max_size_;
-    return buffer_[i];
+  int operator[](int i) const {
+    assert(0 <= i && i < size_);
+    return buffer_[index(i)];
   }
 
-  int front() const { return operator[](0); }
-  int back() const { return operator[](size_ - 1); }
+  bool empty() const { return size_ == 0; }
+
+  int front() const {
+    assert(!empty());
+    return buffer_[position_];
+  }
+
+  int back() const {
+    assert(!empty());
+    return buffer_[index(size_ - 1)];
+  }
 
   void pop_front() {
     assert(size_ > 0);
-    position_++;
+    position_ = position_ + 1 == max_size_ ? 0 : position_ + 1;
     size_--;
   }
 
@@ -76,10 +86,10 @@ class CircularBuffer {
   int size() const { return size_; }
 
  private:
-  constexpr bool wrap(int index) {
-    assert(index > 0);
-    int i = position_ + index;
-    return i < max_size_ ? i : i - max_size_;
+  constexpr int index(int i) const {
+    assert(0 <= i && i < max_size_);
+    int j = position_ + i;
+    return j < max_size_ ? j : j - max_size_;
   }
 
   const std::unique_ptr<int[]> buffer_;
@@ -96,8 +106,6 @@ long long Solve(int num_players, int num_marbles) {
   // being the one at the indicated position.
   int player_index = 0;
   for (int next_marble = 1; next_marble < num_marbles; next_marble++) {
-    player_index++;
-    if (player_index == num_players) player_index = 0;
     if (next_marble % 23 == 0) {
       int n = marbles.size();
       assert(n > 7);
@@ -113,14 +121,41 @@ long long Solve(int num_players, int num_marbles) {
     //copy(begin(marbles), end(marbles),
     //     std::ostream_iterator<int>{std::cout, " "});
     //std::cout << '\n';
+    player_index++;
+    if (player_index == num_players) player_index = 0;
   }
   auto i = max_element(begin(scores), end(scores));
   return *i;
 }
 
+void Tests() {
+  struct TestCase {
+    const char* name;
+    int num_players, last_marble;
+    long long expected_score;
+  };
+  constexpr TestCase kTestCases[] = {
+    {"#1", 10, 1618, 8317},
+    {"#2", 13, 7999, 146373},
+    {"#3", 17, 1104, 2764},
+    {"#4", 21, 6111, 54718},
+    {"#5", 30, 5807, 37305},
+  };
+  std::cout << '\n';
+  for (auto test : kTestCases) {
+    auto result = Time([&] {
+      return Solve(test.num_players, test.last_marble + 1);
+    });
+    std::cout << test.name << ": " << result << ": "
+              << (result.value == test.expected_score ? "success" : "failure")
+              << '\n';
+  }
+}
+
 }  // namespace
 
 long long Solve9A() {
+  Tests();
   // N players; last marble is worth M points
   // ^ num_players                   ^ num_marbles
   int num_players = svtoi(kPuzzle9);
