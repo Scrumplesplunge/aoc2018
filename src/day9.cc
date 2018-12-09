@@ -88,21 +88,18 @@ long long Solve(int num_players, int num_marbles) {
   std::vector<long long> scores(num_players);
   // The active range of marbles is in 0..next_marble with the current marble
   // being the one at the indicated position.
-  int player_index = 0;
-  for (int next_marble = 1; next_marble < num_marbles; next_marble++) {
-    if (next_marble % 23 == 0) {
+  int player_index = 0, remainder = 1;
+  for (int next_marble = 1; next_marble < num_marbles;
+       next_marble++, player_index++, remainder++) {
+    if (player_index == num_players) player_index = 0;
+    if (remainder == 23) {
+      remainder = 0;
       marbles.rotate_backward(7);
       scores[player_index] += marbles.pop_front() + next_marble;
     } else {
       marbles.rotate_forward(2);
       marbles.push_front(next_marble);
     }
-    // debug
-    //copy(begin(marbles), end(marbles),
-    //     std::ostream_iterator<int>{std::cout, " "});
-    //std::cout << '\n';
-    player_index++;
-    if (player_index == num_players) player_index = 0;
   }
   auto i = max_element(begin(scores), end(scores));
   return *i;
