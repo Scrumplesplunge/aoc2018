@@ -43,59 +43,60 @@ class CircularBuffer {
   }
 
   void push_back(int value) {
-    assert(size_ < max_size_);
-    buffer_[index(size_)] = value;
-    size_++;
+    assert(size() < max_size_);
+    buffer_[end_] = value;
+    end_ = end_ + 1 == max_size_ ? 0 : end_ + 1;
   }
 
   void push_front(int value) {
-    assert(size_ < max_size_);
-    position_ = position_ == 0 ? max_size_ - 1 : position_ - 1;
-    buffer_[position_] = value;
-    size_++;
+    assert(size() < max_size_);
+    begin_ = begin_ == 0 ? max_size_ - 1 : begin_ - 1;
+    buffer_[begin_] = value;
   }
 
   int operator[](int i) const {
-    assert(0 <= i && i < size_);
+    assert(0 <= i && i < size());
     return buffer_[index(i)];
   }
 
-  bool empty() const { return size_ == 0; }
+  bool empty() const { return begin_ == end_; }
 
   int front() const {
     assert(!empty());
-    return buffer_[position_];
+    return buffer_[begin_];
   }
 
   int back() const {
     assert(!empty());
-    return buffer_[index(size_ - 1)];
+    return buffer_[index(size() - 1)];
   }
 
   void pop_front() {
-    assert(size_ > 0);
-    position_ = position_ + 1 == max_size_ ? 0 : position_ + 1;
-    size_--;
+    assert(size() > 0);
+    begin_ = begin_ + 1 == max_size_ ? 0 : begin_ + 1;
   }
 
   void pop_back() {
-    assert(size_ > 0);
-    size_--;
+    assert(size() > 0);
+    end_ = end_ == 0 ? max_size_ - 1 : end_ - 1;
   }
 
-  int size() const { return size_; }
+  int size() const {
+    int value = end_ - begin_;
+    return value >= 0 ? value : max_size_ + value;
+  }
 
  private:
   constexpr int index(int i) const {
     assert(0 <= i && i < max_size_);
-    int j = position_ + i;
+    int j = begin_ + i;
     return j < max_size_ ? j : j - max_size_;
   }
 
   const std::unique_ptr<int[]> buffer_;
   const int max_size_;
-  int position_ = 0;
-  int size_ = 0;
+  int begin_ = 0;
+  int end_ = 0;
 };
 
 long long Solve(int num_players, int num_marbles) {
