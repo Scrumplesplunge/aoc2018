@@ -20,7 +20,10 @@ int svtoi(std::string_view input) {
 class CircularBuffer {
  public:
   CircularBuffer(int max_size)
-      : buffer_(std::make_unique<int[]>(max_size)), max_size_(max_size) {}
+      : buffer_(std::make_unique<int[]>(max_size)),
+        begin_(buffer_.get()),
+        end_(begin_),
+        buffer_end_(begin_ + max_size) {}
 
   void rotate_forward(int amount) {
     assert(amount >= 0);
@@ -43,60 +46,62 @@ class CircularBuffer {
   }
 
   void push_back(int value) {
-    assert(size() < max_size_);
-    buffer_[end_] = value;
-    end_ = end_ + 1 == max_size_ ? 0 : end_ + 1;
+    assert(size() < max_size());
+    *end_ = value;
+    end_ = end_ + 1 == buffer_end_ ? buffer_.get() : end_ + 1;
   }
 
   void push_front(int value) {
-    assert(size() < max_size_);
-    begin_ = begin_ == 0 ? max_size_ - 1 : begin_ - 1;
-    buffer_[begin_] = value;
+    assert(size() < max_size());
+    begin_ = begin_ == buffer_.get() ? buffer_end_ - 1 : begin_ - 1;
+    *begin_ = value;
   }
 
   int operator[](int i) const {
     assert(0 <= i && i < size());
-    return buffer_[index(i)];
+    return *index(i);
   }
 
   bool empty() const { return begin_ == end_; }
 
   int front() const {
     assert(!empty());
-    return buffer_[begin_];
+    return *begin_;
   }
 
   int back() const {
     assert(!empty());
-    return buffer_[index(size() - 1)];
+    return *index(size() - 1);
   }
 
   void pop_front() {
-    assert(size() > 0);
-    begin_ = begin_ + 1 == max_size_ ? 0 : begin_ + 1;
+    assert(!empty());
+    begin_ = begin_ + 1 == buffer_end_ ? buffer_.get() : begin_ + 1;
   }
 
   void pop_back() {
-    assert(size() > 0);
-    end_ = end_ == 0 ? max_size_ - 1 : end_ - 1;
+    assert(!empty());
+    end_ = end_ == buffer_.get() ? buffer_end_ - 1 : end_ - 1;
   }
 
   int size() const {
     int value = end_ - begin_;
-    return value >= 0 ? value : max_size_ + value;
+    return value >= 0 ? value : max_size() + value;
   }
 
+  int max_size() const { return buffer_end_ - buffer_.get(); }
+
  private:
-  constexpr int index(int i) const {
-    assert(0 <= i && i < max_size_);
-    int j = begin_ + i;
-    return j < max_size_ ? j : j - max_size_;
+  constexpr int* index(int i) const {
+    assert(0 <= i && i < max_size());
+    int* j = begin_ + i;
+    return j < buffer_end_ ? j : j - max_size();
   }
 
   const std::unique_ptr<int[]> buffer_;
-  const int max_size_;
-  int begin_ = 0;
-  int end_ = 0;
+  int* begin_;
+  int* end_;
+  int* buffer_end_;
 };
 
 long long Solve(int num_players, int num_marbles) {
