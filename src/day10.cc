@@ -44,8 +44,8 @@ int svtoi(std::string_view input) {
 }
 
 std::istream& operator>>(std::istream& input, Point& point) {
-  std::string line_data;
-  if (!std::getline(input, line_data)) return input;
+  char line_data[100];
+  if (!input.getline(line_data, 100)) return input;
   auto number_after =
       [i = 0, line = std::string_view{line_data}](char c) mutable {
     auto result = line.find(c, i);
@@ -78,11 +78,6 @@ BoundingBox Bounds(const std::vector<Point>& points, int time) {
 }
 
 int FindAlignmentTime(const std::vector<Point>& points) {
-  //for (int time = 0; true; time++) {
-  //  if (area(Bounds(points, time)) < area(Bounds(points, time + 1)))
-  //    return time;
-  //}
-  //return -1;
   // Assumption: bounding box will shrink at first, then start growing. The
   // message will appear when the box is at its minimum size.
   long min_time = 0, max_time = 1;
