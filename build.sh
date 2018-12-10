@@ -96,8 +96,7 @@ SOLUTIONS="$(
     day_id="$(basename --suffix=.o "$day")"
     cat "src/$day_id.cc"
   done |
-  grep -ohP '^.*\bSolve[0-9]+[AB]\(\)' |
-  sort -ui
+  grep -ohP '^.*\bSolve[0-9]+[AB]\(\)'
 )"
 
 cat >> src/main.cc <<EOF
@@ -119,7 +118,8 @@ $(cat src/allocation.cc)
 int main() {
   std::cout $(
     grep -oP '\bSolve[0-9]+[AB]\b' <<< "$SOLUTIONS" |
-    sort -ui |
+    sort -gk 1.6 |
+    uniq |
     while read solution; do
       echo "    << \"$solution: \" << Time($solution) << \"\\n\""
     done
