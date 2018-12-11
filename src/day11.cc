@@ -46,15 +46,11 @@ std::string Solve11A() {
 
 std::string Solve11B() {
   const int serial_number = stoi(std::string(kPuzzle11));
-  // The grid cell [i, j] will contain a cumulative sum of all cells in the area
-  // with lower bounds [1, 1] and upper bounds [i + 1, j + 1] (inclusive).
-  std::array<std::array<int, 300>, 300> grid;
-  grid[0][0] = power(1, 1, serial_number);
-  for (int x = 1; x < 300; x++) {
-    grid[0][x] = grid[0][x - 1] + power(1, 1, serial_number);
-  }
-  for (int y = 1; y < 300; y++) {
-    grid[y][0] = grid[y - 1][0] + power(1, y + 1, serial_number);
+  // grid[j, i] will contain a cumulative sum of all cells in the area with
+  // lower bounds [1, 1] and upper bounds [i, j] (inclusive). Every grid cell
+  // with coordinate [i, 0] or [0, j] is 0.
+  std::array<std::array<int, 301>, 301> grid = {};
+  for (int y = 1; y <= 300; y++) {
     for (int x = 1; x < 300; x++) {
       // The cumulative value of this cell is the one up and to the left of it,
       // plus the cumulative value of the column above it and the row to the
@@ -68,13 +64,13 @@ std::string Solve11B() {
   }
   struct { int x = 1, y = 1, size = 1; } max_block;
   int max_power = grid[0][0];
-  for (int y = 0; y < 300; y++) {
-    for (int x = 0; x < 300; x++) {
+  for (int y = 1; y <= 300; y++) {
+    for (int x = 1; x <= 300; x++) {
       for (int size = 1, bound = 300 - std::max(x, y); size <= bound; size++) {
-        int power = grid[y + size - 1][x + size - 1];
-        if (0 < x) power -= grid[y + size - 1][x - 1];  // left of this area
-        if (0 < y) power -= grid[y - 1][x + size - 1];  // above this area
-        if (0 < x && 0 < y) power += grid[y - 1][x - 1];  // above and left
+        int power = grid[y + size - 1][x + size - 1]
+                  - grid[y + size - 1][x - 1]   // left of this area
+                  - grid[y - 1][x + size - 1]   // above this area
+                  + grid[y - 1][x - 1];  // above and left (double-counted).
         if (max_power < power) {
           max_power = power;
           max_block = {x, y, size};
