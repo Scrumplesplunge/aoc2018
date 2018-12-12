@@ -12,14 +12,14 @@
 
 namespace {
 
-using Id = char;
+using Id = unsigned char;
 using Dimension = short;
 
 struct Coordinate {
   Dimension x, y;
 };
 
-enum class Draw : char {};
+enum class Draw : unsigned char {};
 using Closest = std::variant<Id, Draw>;
 
 std::istream& operator>>(std::istream& input, Coordinate& coordinate) {
@@ -108,7 +108,6 @@ int Solve6A() {
   // have infinite area as it will continue to be closest to some squares on the
   // surrounding ring and this applies inductively.
   bool edge[std::numeric_limits<Id>::max() + 1] = {};
-  int last_row_offset = (size.y - 1) * size.x;
   constexpr auto blacklist_edge = [](int offset, int step, int limit,
                                      const Closest* grid, bool* edge) {
     for (int i = offset; i < limit; i += step) {
