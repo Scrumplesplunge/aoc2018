@@ -112,9 +112,9 @@ std::string Solve10A() {
   int time = FindAlignmentTime(points);
   BoundingBox bounds = Bounds(points, time);
   int width = bounds.max.x - bounds.min.x, height = bounds.max.y - bounds.min.y;
-  constexpr int kMaxWidth = 150, kMaxHeight = 10;
-  assert(width <= kMaxWidth);
-  assert(height <= kMaxHeight);
+  // Sanity check the dimensions with arbitrarily assumed bounds.
+  assert(width <= 150);
+  assert(height <= 10);
   std::string result((width + 1) * height + 1, ' ');
   for (int y = 0; y <= height; y++) result[y * (width + 1)] = '\n';
   for (const Point& point : points) {

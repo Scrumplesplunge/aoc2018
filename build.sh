@@ -58,9 +58,9 @@ fi
 CXXFLAGS=(
   -std=c++17
   "-I$TEMP_DIR"
-    -Wall
-    -Wextra
-    -pedantic
+  -Wall
+  -Wextra
+  -pedantic
 )
 LDFLAGS=()
 
