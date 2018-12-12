@@ -18,21 +18,19 @@ struct Input;
 class Rules {
  public:
   // pot should be the middle of 5 pots.
-  constexpr bool WillGrow(const bool* pot) {
-    return mapping_[key(pot)];
-  }
+  constexpr bool WillGrow(const bool* pot) const { return mapping_[key(pot)]; }
 
  private:
   friend Input GetInput();
 
   // pot should be the middle of 5 pots.
-  constexpr int key(const char* pot) {
+  constexpr int key(const char* pot) const {
     return (pot[-2] == '#') | (pot[-1] == '#') << 1 | (pot[0] == '#') << 2 |
            (pot[1] == '#') << 3 | (pot[2] == '#') << 4;
   }
 
   // pot should be the middle of 5 pots.
-  constexpr int key(const bool* pot) {
+  constexpr int key(const bool* pot) const {
     return pot[-2] | pot[-1] << 1 | pot[0] << 2 | pot[1] << 3 | pot[2] << 4;
   }
 
@@ -43,6 +41,36 @@ struct Input {
   std::array<bool, kInitialPots> pots = {};
   Rules rules;
 };
+
+Input GetInput() {
+  Input input;
+  // Load the initial space.
+  auto initial_begin = kPuzzle12.find(": ");
+  assert(initial_begin != std::string_view::npos);
+  initial_begin += 2;
+  auto initial_end = kPuzzle12.find('\n', initial_begin);
+  assert(initial_end != std::string_view::npos);
+  assert(initial_end - initial_begin == kInitialPots);
+  auto initial = kPuzzle12.substr(initial_begin, initial_end - initial_begin);
+  std::transform(begin(initial), end(initial), begin(input.pots),
+                 [](char c) { return c == '#'; });
+  // Load all the growth rules.
+  auto rule_start = kPuzzle12.find("\n\n", initial_end);
+  assert(rule_start != std::string_view::npos);
+  rule_start += 2;
+  int rules_read = 0;
+  for (auto i = rule_start, n = kPuzzle12.length() - 1; i < n; i++) {
+    auto rule_end = kPuzzle12.find('\n', rule_start);
+    if (rule_end == std::string_view::npos) break;
+    std::string_view line = kPuzzle12.substr(rule_start, rule_end - rule_start);
+    assert(line.length() == 10);
+    input.rules.mapping_[input.rules.key(line.data() + 2)] = line[9] == '#';
+    rule_start = rule_end + 1;
+    rules_read++;
+  }
+  assert(rules_read == 32);
+  return input;
+}
 
 class Pots {
  public:
@@ -56,6 +84,8 @@ class Pots {
   }
 
   void set(std::int64_t index, bool value) {
+    assert(offset_ <= index);
+    assert(index < offset_ + static_cast<std::int64_t>(contents_.size()));
     if (value) {
       if (index < left_) left_ = index;
       if (right_ <= index) right_ = index + 1;
@@ -91,49 +121,19 @@ ShiftResult FindShift(const Pots& a, const Pots& b) {
   return ShiftResult{true, offset};
 }
 
-Input GetInput() {
-  Input input;
-  // Load the initial space.
-  auto initial_begin = kPuzzle12.find(": ");
-  assert(initial_begin != std::string_view::npos);
-  initial_begin += 2;
-  auto initial_end = kPuzzle12.find('\n', initial_begin);
-  assert(initial_end != std::string_view::npos);
-  assert(initial_end - initial_begin == kInitialPots);
-  auto initial = kPuzzle12.substr(initial_begin, initial_end - initial_begin);
-  std::transform(begin(initial), end(initial), begin(input.pots),
-                 [](char c) { return c == '#'; });
-  // Load all the growth rules.
-  auto rule_start = kPuzzle12.find("\n\n", initial_end);
-  assert(rule_start != std::string_view::npos);
-  rule_start += 2;
-  int rules_read = 0;
-  for (auto i = rule_start, n = kPuzzle12.length() - 1; i < n; i++) {
-    auto rule_end = kPuzzle12.find('\n', rule_start);
-    if (rule_end == std::string_view::npos) break;
-    std::string_view line = kPuzzle12.substr(rule_start, rule_end - rule_start);
-    assert(line.length() == 10);
-    input.rules.mapping_[input.rules.key(line.data() + 2)] = line[9] == '#';
-    rule_start = rule_end + 1;
-    rules_read++;
-  }
-  assert(rules_read == 32);
-  return input;
-}
-
 std::int64_t GenerationSum(std::int64_t target_generation) {
   Input input = GetInput();
   // Two rows of pots for double buffering. Pot i is at kExpansionBorder + i.
   Pots pots{-5, kInitialPots + 5};
   for (std::int64_t i = 0; i < kInitialPots; i++) pots.set(i, input.pots[i]);
-  long generations = 0;
+  std::int64_t generations = 0;
   while (generations < target_generation) {
     generations++;
     Pots previous = std::move(pots);
     std::int64_t begin = previous.left() - 5, end = previous.right() + 5;
     assert(begin < end);
     pots = Pots{begin, end};
-    for (std::int64_t i = begin + 2, n = end - 2; i < n; i++) {
+    for (std::int64_t i = begin + 3, n = end - 3; i < n; i++) {
       pots.set(i, input.rules.WillGrow(&previous.get(i)));
     }
 
