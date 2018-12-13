@@ -51,6 +51,7 @@ constexpr Choice operator++(Choice& value, int) {
 
 struct Position { unsigned char x, y; };
 
+// Order positions such that top left < top right < bottom left < bottom right.
 constexpr bool operator<(Position a, Position b) {
   return std::tie(a.y, a.x) < std::tie(b.y, b.x);
 }
@@ -70,6 +71,7 @@ struct Cart {
 constexpr Cart kCrashedCart{
     {kGridWidth, kGridHeight}, Direction::kUp, Choice::kStraight};
 
+// Order carts by their position.
 constexpr bool operator<(Cart a, Cart b) { return a.position < b.position; }
 
 constexpr bool operator==(Cart a, Cart b) {
