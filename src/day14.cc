@@ -51,12 +51,11 @@ std::size_t Solve14B() {
   std::string puzzle{kPuzzle14.substr(0, kPuzzle14.length() - 1)};  // remove \n
   for (char& c : puzzle) c -= '0';
   State state;
+  state.recipes.reserve(21'000'000);
   std::size_t size_before = state.recipes.size();
   while (true) {
-    // If I need more than 100MB I definitely need to consider a better
-    // algorithm.
-    assert(state.recipes.size() < 100'000'000);
-    state.Step();
+    constexpr int kBatchSize = 1000;
+    for (int i = 0; i < kBatchSize; i++) state.Step();
     std::size_t size_after = state.recipes.size();
     auto first = begin(state.recipes) + size_before - puzzle.length() + 1,
          last = begin(state.recipes) + size_after;
