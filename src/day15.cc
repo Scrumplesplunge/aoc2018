@@ -1,11 +1,3 @@
-// Wrong: 2200 * 95 = 209000
-// Wrong: 2200 * 96 = 211200
-// Wrong: 2197 * 95 = 208715
-// Wrong: 2203 * 95 = 209285
-// Right: 2194 * 94 = 206236
-//
-// Wrong: 12 (11, 13 also wrong)
-// Right: 88537 (I'm an idiot; I thought it wanted the damage, not the outcome)
 #include "puzzles.h"
 
 #include <array>
@@ -25,8 +17,8 @@ constexpr int kGridHeight = 32;
 constexpr int kStartingHealth = 200;
 
 enum class UnitType : char { kElf = 'E', kGoblin = 'G' };
-struct Position { int x, y; };
-using Grid = std::array<std::array<char, kGridWidth>, kGridHeight>;
+struct Position { std::int8_t x, y; };
+using Grid = std::array<std::array<std::int8_t, kGridWidth>, kGridHeight>;
 
 struct Unit {
   UnitType type;
@@ -79,7 +71,7 @@ Grid GetDistances(const Grid& grid, Position start) {
     frontier.pop();
     Position p = node.position;
     int d = node.distance + 1;
-    auto add = [&](int x, int y) {
+    auto add = [&](std::int8_t x, std::int8_t y) {
       assert(0 <= x && x < kGridWidth);
       assert(0 <= y && y < kGridHeight);
       if (grid[y][x] != '.') {
@@ -111,9 +103,9 @@ State State::FromInput(int elf_attack_damage) {
 
   State state;
   state.elf_attack_damage_ = elf_attack_damage;
-  for (int y = 0; y < kGridHeight; y++) {
+  for (std::int8_t y = 0; y < kGridHeight; y++) {
     int offset = (kGridWidth + 1) * y;
-    for (int x = 0; x < kGridWidth; x++) {
+    for (std::int8_t x = 0; x < kGridWidth; x++) {
       char c = kPuzzle15[offset + x];
       if (c == 'G') {
         state.num_goblins_++;
@@ -171,7 +163,7 @@ bool State::Move(Unit& unit) {
   for (const auto& target : units_) {
     if (target.health == 0) continue;  // Dead.
     if (target.type == unit.type) continue;  // Same team.
-    auto consider = [&](int x, int y) {
+    auto consider = [&](std::int8_t x, std::int8_t y) {
       if (grid_[y][x] != '.') return;  // Not somewhere we can go.
       Position p{x, y};
       int distance = distances[y][x];
@@ -192,7 +184,10 @@ bool State::Move(Unit& unit) {
   distances = GetDistances(grid_, best_target);
   Position next_position = {-1, -1};
   int closest = 127;
-  Position candidates[] = {{x, y - 1}, {x - 1, y}, {x + 1, y}, {x, y + 1}};
+  Position candidates[] = {{x, static_cast<std::int8_t>(y - 1)},
+                           {static_cast<std::int8_t>(x - 1), y},
+                           {static_cast<std::int8_t>(x + 1), y},
+                           {x, static_cast<std::int8_t>(y + 1)}};
   for (Position p : candidates) {
     if (grid_[p.y][p.x] != '.') continue;  // Not somewhere we can go.
     int distance = distances[p.y][p.x];
@@ -236,8 +231,6 @@ void State::Step() {
   constexpr auto is_dead = [](const auto& unit) { return unit.health == 0; };
   units_.erase(remove_if(begin(units_), end(units_), is_dead), end(units_));
   if (!done_) rounds_++;
-  sort(begin(units_), end(units_));
-  for (const Unit& unit : units_) assert(unit.health > 0);
 }
 
 std::vector<Position> State::AdjacentEnemies(Position position) const {
@@ -249,10 +242,11 @@ std::vector<Position> State::AdjacentEnemies(Position position) const {
   std::vector<Position> positions;
   positions.reserve(4);
   // Check in reading order.
-  if (grid_[y - 1][x] == enemy) positions.push_back({x, y - 1});
-  if (grid_[y][x - 1] == enemy) positions.push_back({x - 1, y});
-  if (grid_[y][x + 1] == enemy) positions.push_back({x + 1, y});
-  if (grid_[y + 1][x] == enemy) positions.push_back({x, y + 1});
+  auto add = [&](std::int8_t x, std::int8_t y) { positions.push_back({x, y}); };
+  if (grid_[y - 1][x] == enemy) add(x, y - 1);
+  if (grid_[y][x - 1] == enemy) add(x - 1, y);
+  if (grid_[y][x + 1] == enemy) add(x + 1, y);
+  if (grid_[y + 1][x] == enemy) add(x, y + 1);
   return positions;
 }
 
