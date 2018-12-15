@@ -1,3 +1,7 @@
+// Wrong: 2200 * 95 = 209000
+// Wrong: 2200 * 96 = 211200
+// Wrong: 2197 * 95 = 208715
+// Wrong: 2203 * 95 = 209285
 #include "puzzles.h"
 
 #include <array>
@@ -12,8 +16,8 @@
 
 namespace {
 
-constexpr int kGridWidth = 9;
-constexpr int kGridHeight = 9;
+constexpr int kGridWidth = 32;
+constexpr int kGridHeight = 32;
 constexpr int kAttackDamage = 3;
 constexpr int kStartingHealth = 200;
 
@@ -142,14 +146,6 @@ State State::FromInput() {
     }
   }
 
-  constexpr auto type_is = [](UnitType type) {
-    return [type](const auto& unit) { return unit.type == type; };
-  };
-  state.num_elves_ =
-      count_if(begin(state.units_), end(state.units_), type_is(UnitType::kElf));
-  state.num_goblins_ = count_if(begin(state.units_), end(state.units_),
-                          type_is(UnitType::kGoblin));
-
   return state;
 }
 
@@ -160,11 +156,14 @@ void State::Attack(const std::vector<Position>& adjacent_enemies) {
   // Attack
   std::cout << "Attacking ";
   Unit* target = nullptr;
+  // Positions are ordered in reading order so the earliest will be picked
+  // without special consideration.
   for (const Position& target_position : adjacent_enemies) {
-    auto i = find_if(begin(units_), end(units_), [&](const auto& target) {
-      return target.position == target_position;
-    });
-    assert(i != end(units_));
+    auto matches_position = [&](const auto& target) {
+      return target.health > 0 && target.position == target_position;
+    };
+    assert(count_if(begin(units_), end(units_), matches_position) == 1);
+    auto i = find_if(begin(units_), end(units_), matches_position);
     if (target == nullptr || i->health < target->health) {
       target = &*i;
     }
@@ -226,14 +225,13 @@ bool State::Move(Unit& unit) {
     }
   }
   if (closest == 127) {
-    assert(!(x == 23 && y == 16));
     std::cout << "Can't move: no path.\n";
     return false;
   }
   assert(next_position.x != -1 && next_position.y != -1);
   // Move to the new location.
   std::cout << "Moving to " << next_position.x << "," << next_position.y
-            << ".\n";
+            << "\n";
   grid_[y][x] = '.';
   grid_[next_position.y][next_position.x] = static_cast<char>(unit.type);
   unit.position = next_position;
@@ -253,7 +251,7 @@ void State::Step() {
     assert(1 <= x && x < kGridWidth - 1);
     assert(1 <= y && y < kGridHeight - 1);
     assert(static_cast<char>(unit.type) == grid_[y][x]);
-    //std::cout << "Turn for unit at " << x << "," << y << ": ";
+    std::cout << "Turn for unit at " << x << "," << y << ": ";
     auto adjacent_enemies = AdjacentEnemies(unit.position);
     if (!adjacent_enemies.empty()) {
       Attack(adjacent_enemies);
@@ -267,6 +265,13 @@ void State::Step() {
   constexpr auto is_dead = [](const auto& unit) { return unit.health == 0; };
   units_.erase(remove_if(begin(units_), end(units_), is_dead), end(units_));
   if (!done_) rounds_++;
+  sort(begin(units_), end(units_));
+  for (const Unit& unit : units_) {
+    assert(unit.health > 0);
+    std::cout << (unit.type == UnitType::kElf ? "Elf" : "Goblin") << " "
+              << unit.position.x << "," << unit.position.y << " has health "
+              << int{unit.health} << "\n";
+  }
 }
 
 std::vector<Position> State::AdjacentEnemies(Position position) const {
@@ -301,7 +306,7 @@ int Solve15A() {
     std::cout << "\n";
     state.Step();
     state.Show();
-    //std::cin.get();
+    std::cin.get();
   }
   return state.outcome();
 }
