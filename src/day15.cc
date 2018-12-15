@@ -2,6 +2,9 @@
 // Wrong: 2200 * 96 = 211200
 // Wrong: 2197 * 95 = 208715
 // Wrong: 2203 * 95 = 209285
+// Right: 2194 * 94 = 206236
+//
+// Wrong: 12
 #include "puzzles.h"
 
 #include <array>
@@ -18,7 +21,6 @@ namespace {
 
 constexpr int kGridWidth = 32;
 constexpr int kGridHeight = 32;
-constexpr int kAttackDamage = 3;
 constexpr int kStartingHealth = 200;
 
 enum class UnitType : char { kElf = 'E', kGoblin = 'G' };
@@ -33,7 +35,7 @@ struct Unit {
 
 class State {
  public:
-  static State FromInput();
+  static State FromInput(int elf_attack_damage);
   void Show();
   void Attack(const std::vector<Position>&);
   bool Move(Unit& unit);
@@ -43,6 +45,9 @@ class State {
   bool done() const { return done_; }
   int outcome() const;
 
+  int num_elves() const { return num_elves_; }
+  int num_goblins() const { return num_goblins_; }
+
  private:
   bool done_ = false;
   int rounds_ = 0;
@@ -50,6 +55,7 @@ class State {
   std::vector<Unit> units_;
   int num_elves_ = 0;
   int num_goblins_ = 0;
+  int elf_attack_damage_ = 3;
 };
 
 constexpr bool operator<(Position a, Position b) {
@@ -121,7 +127,7 @@ Grid GetDistances(const Grid& grid, Position start) {
   return distances;
 }
 
-State State::FromInput() {
+State State::FromInput(int elf_attack_damage) {
 #ifndef NDEBUG
   assert(kPuzzle15.length() == (kGridWidth + 1) * kGridHeight);
   for (int y = 0; y < kGridHeight; y++)
@@ -129,6 +135,7 @@ State State::FromInput() {
 #endif // NDEBUG
 
   State state;
+  state.elf_attack_damage_ = elf_attack_damage;
   for (int y = 0; y < kGridHeight; y++) {
     int offset = (kGridWidth + 1) * y;
     for (int x = 0; x < kGridWidth; x++) {
@@ -154,7 +161,7 @@ void State::Show() { ShowGrid(grid_); }
 void State::Attack(const std::vector<Position>& adjacent_enemies) {
   assert(!adjacent_enemies.empty());
   // Attack
-  std::cout << "Attacking ";
+  //std::cout << "Attacking ";
   Unit* target = nullptr;
   // Positions are ordered in reading order so the earliest will be picked
   // without special consideration.
@@ -169,8 +176,9 @@ void State::Attack(const std::vector<Position>& adjacent_enemies) {
     }
   }
   assert(target != nullptr);
-  std::cout << target->position.x << "," << target->position.y << ".\n";
-  if (target->health <= kAttackDamage) {
+  //std::cout << target->position.x << "," << target->position.y << ".\n";
+  int damage = target->type == UnitType::kElf ? 3 : elf_attack_damage_;
+  if (target->health <= damage) {
     // Target killed.
     target->health = 0;
     grid_[target->position.y][target->position.x] = '.';
@@ -179,7 +187,7 @@ void State::Attack(const std::vector<Position>& adjacent_enemies) {
     target_count--;
   } else {
     // Target wounded.
-    target->health -= kAttackDamage;
+    target->health -= damage;
   }
 }
 
@@ -208,7 +216,7 @@ bool State::Move(Unit& unit) {
     consider(tx, ty + 1);
   }
   if (best_distance == 127) {
-    std::cout << "Can't move: no available destinations.\n";
+    // std::cout << "Can't move: no available destinations.\n";
     return false;
   }
   assert(best_target.x != -1 && best_target.y != -1);
@@ -226,13 +234,13 @@ bool State::Move(Unit& unit) {
     }
   }
   if (closest == 127) {
-    std::cout << "Can't move: no path.\n";
+    //std::cout << "Can't move: no path.\n";
     return false;
   }
   assert(next_position.x != -1 && next_position.y != -1);
   // Move to the new location.
-  std::cout << "Moving to " << next_position.x << "," << next_position.y
-            << "\n";
+  //std::cout << "Moving to " << next_position.x << "," << next_position.y
+  //          << "\n";
   grid_[y][x] = '.';
   grid_[next_position.y][next_position.x] = static_cast<char>(unit.type);
   unit.position = next_position;
@@ -248,11 +256,11 @@ void State::Step() {
       done_ = true;
       break;
     }
-    auto [x, y] = unit.position;
-    assert(1 <= x && x < kGridWidth - 1);
-    assert(1 <= y && y < kGridHeight - 1);
-    assert(static_cast<char>(unit.type) == grid_[y][x]);
-    std::cout << "Turn for unit at " << x << "," << y << ": ";
+    assert(1 <= unit.position.x && unit.position.x < kGridWidth - 1);
+    assert(1 <= unit.position.y && unit.position.y < kGridHeight - 1);
+    assert(static_cast<char>(unit.type) ==
+           grid_[unit.position.y][unit.position.x]);
+    //std::cout << "Turn for unit at " << x << "," << y << ": ";
     auto adjacent_enemies = AdjacentEnemies(unit.position);
     if (!adjacent_enemies.empty()) {
       Attack(adjacent_enemies);
@@ -267,12 +275,14 @@ void State::Step() {
   units_.erase(remove_if(begin(units_), end(units_), is_dead), end(units_));
   if (!done_) rounds_++;
   sort(begin(units_), end(units_));
+#ifndef NDEBUG
   for (const Unit& unit : units_) {
     assert(unit.health > 0);
-    std::cout << (unit.type == UnitType::kElf ? "Elf" : "Goblin") << " "
-              << unit.position.x << "," << unit.position.y << " has health "
-              << int{unit.health} << "\n";
+    //std::cout << (unit.type == UnitType::kElf ? "Elf" : "Goblin") << " "
+    //          << unit.position.x << "," << unit.position.y << " has health "
+    //          << int{unit.health} << "\n";
   }
+#endif  // NDEBUG
 }
 
 std::vector<Position> State::AdjacentEnemies(Position position) const {
@@ -298,16 +308,39 @@ int State::outcome() const {
   return health * rounds_;
 }
 
+bool ElfVictoryWith(int damage) {
+  auto state = State::FromInput(damage);
+  int original_num_elves = state.num_elves();
+  int original_num_goblins = state.num_goblins();
+  while (!state.done()) state.Step();
+  std::cout << "damage = " << damage << ": "
+            << (original_num_elves - state.num_elves()) << " elf deaths vs "
+            << (original_num_goblins - state.num_goblins())
+            << " goblin deaths.\n";
+  return state.num_elves() == original_num_elves;
+}
+
 }  // namespace
 
 int Solve15A() {
-  auto state = State::FromInput();
-  state.Show();
+  auto state = State::FromInput(3);
   while (!state.done()) {
-    std::cout << "\n";
     state.Step();
-    state.Show();
-    std::cin.get();
   }
   return state.outcome();
+}
+
+int Solve15B() {
+  int min_damage = 1, max_damage = 200;
+  while (min_damage != max_damage) {
+    int damage = min_damage + (max_damage - min_damage) / 2;
+    if (ElfVictoryWith(damage)) {
+      // Elves win with this amount, so it might be the right amount.
+      max_damage = damage;
+    } else {
+      // At least one elf died, so more damage is needed.
+      min_damage = damage + 1;
+    }
+  }
+  return min_damage;
 }
