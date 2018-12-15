@@ -12,8 +12,8 @@
 
 namespace {
 
-constexpr int kGridWidth = 7;
-constexpr int kGridHeight = 7;
+constexpr int kGridWidth = 9;
+constexpr int kGridHeight = 9;
 constexpr int kAttackDamage = 3;
 constexpr int kStartingHealth = 200;
 
@@ -36,10 +36,11 @@ class State {
   void Step();
   std::vector<Position> AdjacentEnemies(Position position) const;
 
-  bool done() const;
+  bool done() const { return done_; }
   int outcome() const;
 
  private:
+  bool done_ = false;
   int rounds_ = 0;
   Grid grid_;
   std::vector<Unit> units_;
@@ -141,6 +142,14 @@ State State::FromInput() {
     }
   }
 
+  constexpr auto type_is = [](UnitType type) {
+    return [type](const auto& unit) { return unit.type == type; };
+  };
+  state.num_elves_ =
+      count_if(begin(state.units_), end(state.units_), type_is(UnitType::kElf));
+  state.num_goblins_ = count_if(begin(state.units_), end(state.units_),
+                          type_is(UnitType::kGoblin));
+
   return state;
 }
 
@@ -166,6 +175,9 @@ void State::Attack(const std::vector<Position>& adjacent_enemies) {
     // Target killed.
     target->health = 0;
     grid_[target->position.y][target->position.x] = '.';
+    auto& target_count =
+        target->type == UnitType::kElf ? num_elves_ : num_goblins_;
+    target_count--;
   } else {
     // Target wounded.
     target->health -= kAttackDamage;
@@ -229,15 +241,19 @@ bool State::Move(Unit& unit) {
 }
 
 void State::Step() {
-  rounds_++;
   sort(begin(units_), end(units_));
   for (auto& unit : units_) {
     if (unit.health == 0) continue;
+    auto target_count = unit.type == UnitType::kElf ? num_goblins_ : num_elves_;
+    if (target_count == 0) {
+      done_ = true;
+      break;
+    }
     auto [x, y] = unit.position;
     assert(1 <= x && x < kGridWidth - 1);
     assert(1 <= y && y < kGridHeight - 1);
     assert(static_cast<char>(unit.type) == grid_[y][x]);
-    std::cout << "Turn for unit at " << x << "," << y << ": ";
+    //std::cout << "Turn for unit at " << x << "," << y << ": ";
     auto adjacent_enemies = AdjacentEnemies(unit.position);
     if (!adjacent_enemies.empty()) {
       Attack(adjacent_enemies);
@@ -250,17 +266,7 @@ void State::Step() {
   }
   constexpr auto is_dead = [](const auto& unit) { return unit.health == 0; };
   units_.erase(remove_if(begin(units_), end(units_), is_dead), end(units_));
-  constexpr auto type_is = [](UnitType type) {
-    return [type](const auto& unit) { return unit.type == type; };
-  };
-  sort(begin(units_), end(units_));
-  for (const Unit& unit : units_) {
-    std::cout << "unit " << unit.position.x << "," << unit.position.y
-              << " has health " << int{unit.health} << "\n";
-  }
-  num_elves_ = count_if(begin(units_), end(units_), type_is(UnitType::kElf));
-  num_goblins_ =
-      count_if(begin(units_), end(units_), type_is(UnitType::kGoblin));
+  if (!done_) rounds_++;
 }
 
 std::vector<Position> State::AdjacentEnemies(Position position) const {
@@ -279,8 +285,6 @@ std::vector<Position> State::AdjacentEnemies(Position position) const {
   return positions;
 }
 
-bool State::done() const { return num_elves_ == 0 || num_goblins_ == 0; }
-
 int State::outcome() const {
   int health = transform_reduce(begin(units_), end(units_), 0, std::plus<>(),
                                 [](Unit u) { return u.health; });
@@ -294,9 +298,9 @@ int Solve15A() {
   auto state = State::FromInput();
   state.Show();
   while (!state.done()) {
-    //std::cout << "\n";
+    std::cout << "\n";
     state.Step();
-    //state.Show();
+    state.Show();
     //std::cin.get();
   }
   return state.outcome();
