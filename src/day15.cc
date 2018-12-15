@@ -89,7 +89,11 @@ Grid GetDistances(const Grid& grid, Position start) {
     add(p.x + 1, p.y);
   }
   // Mark all unreached cells as max distance.
-  for (auto& row : distances) for (auto& cell : row) if (cell == 0) cell = 127;
+  for (auto& row : distances) {
+    for (auto& cell : row) {
+      if (cell == 0) cell = 127;
+    }
+  }
   distances[start.y][start.x] = 0;
   return distances;
 }
