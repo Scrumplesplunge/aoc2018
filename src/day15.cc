@@ -37,7 +37,6 @@ struct Unit {
 class State {
  public:
   static State FromInput(int elf_attack_damage);
-  void Show();
   void Attack(const std::vector<Position>&);
   bool Move(Unit& unit);
   void Step();
@@ -68,21 +67,6 @@ constexpr bool operator==(Position a, Position b) {
 }
 
 constexpr bool operator<(Unit a, Unit b) { return a.position < b.position; }
-
-void ShowGrid(const Grid& grid) {
-  for (const auto& row : grid) {
-    for (const auto& cell : row) {
-      switch (cell) {
-        case '#': std::cout << "\x1b[36m#\x1b[0m"; break;
-        case '.': std::cout << "\x1b[30;1m.\x1b[0m"; break;
-        case 'E': std::cout << "\x1b[32;1mE\x1b[0m"; break;
-        case 'G': std::cout << "\x1b[31;1mG\x1b[0m"; break;
-        default: std::cout << "\x1b[35;1m" << cell << "\x1b[0m"; break;
-      }
-    }
-    std::cout << '\n';
-  }
-}
 
 // Establish reachability of every square in the grid from a given position.
 Grid GetDistances(const Grid& grid, Position start) {
@@ -115,16 +99,6 @@ Grid GetDistances(const Grid& grid, Position start) {
   // Mark all unreached cells as max distance.
   for (auto& row : distances) for (auto& cell : row) if (cell == 0) cell = 127;
   distances[start.y][start.x] = 0;
-  //Grid debug;
-  //for (int y = 0; y < kGridHeight; y++) {
-  //  for (int x = 0; x < kGridWidth; x++) {
-  //    debug[y][x] =
-  //        distances[y][x] == 127 ? grid[y][x] : distances[y][x] % 10 + '0';
-  //  }
-  //}
-  //debug[start.y][start.x] = 'X';
-  //std::cout << "Distances from " << start.x << "," << start.y << ":\n";
-  //ShowGrid(debug);
   return distances;
 }
 
@@ -157,12 +131,9 @@ State State::FromInput(int elf_attack_damage) {
   return state;
 }
 
-void State::Show() { ShowGrid(grid_); }
-
 void State::Attack(const std::vector<Position>& adjacent_enemies) {
   assert(!adjacent_enemies.empty());
   // Attack
-  //std::cout << "Attacking ";
   Unit* target = nullptr;
   // Positions are ordered in reading order so the earliest will be picked
   // without special consideration.
@@ -177,7 +148,6 @@ void State::Attack(const std::vector<Position>& adjacent_enemies) {
     }
   }
   assert(target != nullptr);
-  //std::cout << target->position.x << "," << target->position.y << ".\n";
   int damage = target->type == UnitType::kElf ? 3 : elf_attack_damage_;
   if (target->health <= damage) {
     // Target killed.
@@ -216,10 +186,7 @@ bool State::Move(Unit& unit) {
     consider(tx + 1, ty);
     consider(tx, ty + 1);
   }
-  if (best_distance == 127) {
-    // std::cout << "Can't move: no available destinations.\n";
-    return false;
-  }
+  if (best_distance == 127) return false;
   assert(best_target.x != -1 && best_target.y != -1);
   // Find the best first step to get to that location.
   distances = GetDistances(grid_, best_target);
@@ -234,14 +201,9 @@ bool State::Move(Unit& unit) {
       next_position = p;
     }
   }
-  if (closest == 127) {
-    //std::cout << "Can't move: no path.\n";
-    return false;
-  }
+  if (closest == 127) return false;
   assert(next_position.x != -1 && next_position.y != -1);
   // Move to the new location.
-  //std::cout << "Moving to " << next_position.x << "," << next_position.y
-  //          << "\n";
   grid_[y][x] = '.';
   grid_[next_position.y][next_position.x] = static_cast<char>(unit.type);
   unit.position = next_position;
@@ -261,7 +223,6 @@ void State::Step() {
     assert(1 <= unit.position.y && unit.position.y < kGridHeight - 1);
     assert(static_cast<char>(unit.type) ==
            grid_[unit.position.y][unit.position.x]);
-    //std::cout << "Turn for unit at " << x << "," << y << ": ";
     auto adjacent_enemies = AdjacentEnemies(unit.position);
     if (!adjacent_enemies.empty()) {
       Attack(adjacent_enemies);
@@ -276,14 +237,7 @@ void State::Step() {
   units_.erase(remove_if(begin(units_), end(units_), is_dead), end(units_));
   if (!done_) rounds_++;
   sort(begin(units_), end(units_));
-#ifndef NDEBUG
-  for (const Unit& unit : units_) {
-    assert(unit.health > 0);
-    //std::cout << (unit.type == UnitType::kElf ? "Elf" : "Goblin") << " "
-    //          << unit.position.x << "," << unit.position.y << " has health "
-    //          << int{unit.health} << "\n";
-  }
-#endif  // NDEBUG
+  for (const Unit& unit : units_) assert(unit.health > 0);
 }
 
 std::vector<Position> State::AdjacentEnemies(Position position) const {
@@ -305,19 +259,13 @@ std::vector<Position> State::AdjacentEnemies(Position position) const {
 int State::outcome() const {
   int health = transform_reduce(begin(units_), end(units_), 0, std::plus<>(),
                                 [](Unit u) { return u.health; });
-  std::cout << "health = " << health << ", rounds = " << rounds_ << "\n";
   return health * rounds_;
 }
 
 bool ElfVictoryWith(int damage) {
   auto state = State::FromInput(damage);
   int original_num_elves = state.num_elves();
-  int original_num_goblins = state.num_goblins();
   while (!state.done()) state.Step();
-  std::cout << "damage = " << damage << ": "
-            << (original_num_elves - state.num_elves()) << " elf deaths vs "
-            << (original_num_goblins - state.num_goblins())
-            << " goblin deaths.\n";
   return state.num_elves() == original_num_elves;
 }
 
