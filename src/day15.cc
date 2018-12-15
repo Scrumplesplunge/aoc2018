@@ -4,7 +4,8 @@
 // Wrong: 2203 * 95 = 209285
 // Right: 2194 * 94 = 206236
 //
-// Wrong: 12
+// Wrong: 12 (11, 13 also wrong)
+// Right: 88537 (I'm an idiot; I thought it wanted the damage, not the outcome)
 #include "puzzles.h"
 
 #include <array>
@@ -324,14 +325,12 @@ bool ElfVictoryWith(int damage) {
 
 int Solve15A() {
   auto state = State::FromInput(3);
-  while (!state.done()) {
-    state.Step();
-  }
+  while (!state.done()) state.Step();
   return state.outcome();
 }
 
 int Solve15B() {
-  int min_damage = 1, max_damage = 200;
+  int min_damage = 4, max_damage = 200;
   while (min_damage != max_damage) {
     int damage = min_damage + (max_damage - min_damage) / 2;
     if (ElfVictoryWith(damage)) {
@@ -342,5 +341,7 @@ int Solve15B() {
       min_damage = damage + 1;
     }
   }
-  return min_damage;
+  auto state = State::FromInput(min_damage);
+  while (!state.done()) state.Step();
+  return state.outcome();
 }
