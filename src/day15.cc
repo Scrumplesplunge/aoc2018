@@ -12,8 +12,8 @@
 
 namespace {
 
-constexpr int kGridWidth = 32;
-constexpr int kGridHeight = 32;
+constexpr int kGridWidth = 7;
+constexpr int kGridHeight = 7;
 constexpr int kAttackDamage = 3;
 constexpr int kStartingHealth = 200;
 
@@ -31,6 +31,8 @@ class State {
  public:
   static State FromInput();
   void Show();
+  void Attack(const std::vector<Position>&);
+  bool Move(Unit& unit);
   void Step();
   std::vector<Position> AdjacentEnemies(Position position) const;
 
@@ -144,6 +146,88 @@ State State::FromInput() {
 
 void State::Show() { ShowGrid(grid_); }
 
+void State::Attack(const std::vector<Position>& adjacent_enemies) {
+  assert(!adjacent_enemies.empty());
+  // Attack
+  std::cout << "Attacking ";
+  Unit* target = nullptr;
+  for (const Position& target_position : adjacent_enemies) {
+    auto i = find_if(begin(units_), end(units_), [&](const auto& target) {
+      return target.position == target_position;
+    });
+    assert(i != end(units_));
+    if (target == nullptr || i->health < target->health) {
+      target = &*i;
+    }
+  }
+  assert(target != nullptr);
+  std::cout << target->position.x << "," << target->position.y << ".\n";
+  if (target->health <= kAttackDamage) {
+    // Target killed.
+    target->health = 0;
+    grid_[target->position.y][target->position.x] = '.';
+  } else {
+    // Target wounded.
+    target->health -= kAttackDamage;
+  }
+}
+
+bool State::Move(Unit& unit) {
+  auto [x, y] = unit.position;
+  // Pick a target location.
+  Grid distances = GetDistances(grid_, unit.position);
+  Position best_target = {-1, -1};
+  int best_distance = 127;
+  for (const auto& target : units_) {
+    if (target.type == unit.type) continue;  // Same team.
+    auto consider = [&](int x, int y) {
+      if (grid_[y][x] != '.') return;  // Not somewhere we can go.
+      Position p{x, y};
+      int distance = distances[y][x];
+      if (std::tie(distance, p) < std::tie(best_distance, best_target)) {
+        best_distance = distance;
+        best_target = p;
+      }
+    };
+    auto [tx, ty] = target.position;
+    consider(tx, ty - 1);
+    consider(tx - 1, ty);
+    consider(tx + 1, ty);
+    consider(tx, ty + 1);
+  }
+  if (best_distance == 127) {
+    std::cout << "Can't move: no available destinations.\n";
+    return false;
+  }
+  assert(best_target.x != -1 && best_target.y != -1);
+  // Find the best first step to get to that location.
+  distances = GetDistances(grid_, best_target);
+  Position next_position = {-1, -1};
+  int closest = 127;
+  Position candidates[] = {{x, y - 1}, {x - 1, y}, {x + 1, y}, {x, y + 1}};
+  for (Position p : candidates) {
+    if (grid_[p.y][p.x] != '.') continue;  // Not somewhere we can go.
+    int distance = distances[p.y][p.x];
+    if (std::tie(distance, p) < std::tie(closest, next_position)) {
+      closest = distance;
+      next_position = p;
+    }
+  }
+  if (closest == 127) {
+    assert(!(x == 23 && y == 16));
+    std::cout << "Can't move: no path.\n";
+    return false;
+  }
+  assert(next_position.x != -1 && next_position.y != -1);
+  // Move to the new location.
+  std::cout << "Moving to " << next_position.x << "," << next_position.y
+            << ".\n";
+  grid_[y][x] = '.';
+  grid_[next_position.y][next_position.x] = static_cast<char>(unit.type);
+  unit.position = next_position;
+  return true;
+}
+
 void State::Step() {
   rounds_++;
   sort(begin(units_), end(units_));
@@ -156,88 +240,24 @@ void State::Step() {
     std::cout << "Turn for unit at " << x << "," << y << ": ";
     auto adjacent_enemies = AdjacentEnemies(unit.position);
     if (!adjacent_enemies.empty()) {
-      // Attack
-      std::cout << "Attacking ";
-      Unit* target = nullptr;
-      for (const Position& target_position : adjacent_enemies) {
-        auto i = find_if(begin(units_), end(units_), [&](const auto& target) {
-          return target.position == target_position;
-        });
-        assert(i != end(units_));
-        if (target == nullptr || i->health < target->health) {
-          target = &*i;
-        }
-      }
-      assert(target != nullptr);
-      std::cout << target->position.x << "," << target->position.y << ".\n";
-      if (target->health <= kAttackDamage) {
-        // Target killed.
-        target->health = 0;
-        grid_[target->position.y][target->position.x] = '.';
-      } else {
-        // Target wounded.
-        target->health -= 3;
-      }
-    } else {
-      // Pick a target location.
-      Grid distances = GetDistances(grid_, unit.position);
-      Position best_target = {-1, -1};
-      int best_distance = 127;
-      for (const auto& target : units_) {
-        if (target.type == unit.type) continue;  // Same team.
-        auto consider = [&](int x, int y) {
-          if (grid_[y][x] != '.') return;  // Not somewhere we can go.
-          Position p{x, y};
-          int distance = distances[y][x];
-          if (std::tie(distance, p) < std::tie(best_distance, best_target)) {
-            best_distance = distance;
-            best_target = p;
-          }
-        };
-        auto [tx, ty] = target.position;
-        consider(tx, ty - 1);
-        consider(tx - 1, ty);
-        consider(tx + 1, ty);
-        consider(tx, ty + 1);
-      }
-      if (best_distance == 127) {
-        std::cout << "Can't move: no available destinations.\n";
-        continue;
-      }
-      assert(best_target.x != -1 && best_target.y != -1);
-      // Find the best first step to get to that location.
-      distances = GetDistances(grid_, best_target);
-      Position next_position = {-1, -1};
-      int closest = 127;
-      Position candidates[] = {{x, y - 1}, {x - 1, y}, {x + 1, y}, {x, y + 1}};
-      for (Position p : candidates) {
-        if (grid_[p.y][p.x] != '.') continue;  // Not somewhere we can go.
-        int distance = distances[p.y][p.x];
-        if (std::tie(distance, p) < std::tie(closest, next_position)) {
-          closest = distance;
-          next_position = p;
-        }
-      }
-      if (closest == 127) {
-        assert(!(x == 23 && y == 16));
-        std::cout << "Can't move: no path.\n";
-        continue;
-      }
-      assert(next_position.x != -1 && next_position.y != -1);
-      // Move to the new location.
-      std::cout << "Moving to " << next_position.x << "," << next_position.y
-                << ".\n";
-      grid_[y][x] = '.';
-      grid_[next_position.y][next_position.x] = static_cast<char>(unit.type);
-      unit.position = next_position;
+      Attack(adjacent_enemies);
+      continue;
     }
-    //std::cin.get();
+    // Nothing in range. Need to move.
+    if (!Move(unit)) continue;  // Can't move.
+    adjacent_enemies = AdjacentEnemies(unit.position);
+    if (!adjacent_enemies.empty()) Attack(adjacent_enemies);
   }
   constexpr auto is_dead = [](const auto& unit) { return unit.health == 0; };
   units_.erase(remove_if(begin(units_), end(units_), is_dead), end(units_));
   constexpr auto type_is = [](UnitType type) {
     return [type](const auto& unit) { return unit.type == type; };
   };
+  sort(begin(units_), end(units_));
+  for (const Unit& unit : units_) {
+    std::cout << "unit " << unit.position.x << "," << unit.position.y
+              << " has health " << int{unit.health} << "\n";
+  }
   num_elves_ = count_if(begin(units_), end(units_), type_is(UnitType::kElf));
   num_goblins_ =
       count_if(begin(units_), end(units_), type_is(UnitType::kGoblin));
@@ -264,7 +284,8 @@ bool State::done() const { return num_elves_ == 0 || num_goblins_ == 0; }
 int State::outcome() const {
   int health = transform_reduce(begin(units_), end(units_), 0, std::plus<>(),
                                 [](Unit u) { return u.health; });
-  return health * (rounds_ - 1);
+  std::cout << "health = " << health << ", rounds = " << rounds_ << "\n";
+  return health * rounds_;
 }
 
 }  // namespace
@@ -272,6 +293,11 @@ int State::outcome() const {
 int Solve15A() {
   auto state = State::FromInput();
   state.Show();
-  while (!state.done()) state.Step();
+  while (!state.done()) {
+    //std::cout << "\n";
+    state.Step();
+    //state.Show();
+    //std::cin.get();
+  }
   return state.outcome();
 }
