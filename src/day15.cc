@@ -190,6 +190,7 @@ bool State::Move(Unit& unit) {
   Position best_target = {-1, -1};
   int best_distance = 127;
   for (const auto& target : units_) {
+    if (target.health == 0) continue;  // Dead.
     if (target.type == unit.type) continue;  // Same team.
     auto consider = [&](int x, int y) {
       if (grid_[y][x] != '.') return;  // Not somewhere we can go.
