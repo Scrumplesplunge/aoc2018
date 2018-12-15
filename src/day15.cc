@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <iostream>
 #include <map>
+#include <numeric>
 #include <queue>
 #include <string_view>
 #include <utility>
@@ -34,8 +35,10 @@ class State {
   std::vector<Position> AdjacentEnemies(Position position) const;
 
   bool done() const;
+  int outcome() const;
 
  private:
+  int rounds_ = 0;
   Grid grid_;
   std::vector<Unit> units_;
   int num_elves_ = 0;
@@ -60,7 +63,7 @@ void ShowGrid(const Grid& grid) {
         case '.': std::cout << "\x1b[30;1m.\x1b[0m"; break;
         case 'E': std::cout << "\x1b[32;1mE\x1b[0m"; break;
         case 'G': std::cout << "\x1b[31;1mG\x1b[0m"; break;
-        default: assert(false);
+        default: std::cout << "\x1b[35;1m" << cell << "\x1b[0m"; break;
       }
     }
     std::cout << '\n';
@@ -95,6 +98,19 @@ Grid GetDistances(const Grid& grid, Position start) {
     add(p.x - 1, p.y);
     add(p.x + 1, p.y);
   }
+  // Mark all unreached cells as max distance.
+  for (auto& row : distances) for (auto& cell : row) if (cell == 0) cell = 127;
+  distances[start.y][start.x] = 0;
+  //Grid debug;
+  //for (int y = 0; y < kGridHeight; y++) {
+  //  for (int x = 0; x < kGridWidth; x++) {
+  //    debug[y][x] =
+  //        distances[y][x] == 127 ? grid[y][x] : distances[y][x] % 10 + '0';
+  //  }
+  //}
+  //debug[start.y][start.x] = 'X';
+  //std::cout << "Distances from " << start.x << "," << start.y << ":\n";
+  //ShowGrid(debug);
   return distances;
 }
 
@@ -129,6 +145,7 @@ State State::FromInput() {
 void State::Show() { ShowGrid(grid_); }
 
 void State::Step() {
+  rounds_++;
   sort(begin(units_), end(units_));
   for (auto& unit : units_) {
     if (unit.health == 0) continue;
@@ -184,10 +201,9 @@ void State::Step() {
         consider(tx, ty + 1);
       }
       if (best_distance == 127) {
-        std::cout << "Can't move: no targets.\n";
+        std::cout << "Can't move: no available destinations.\n";
         continue;
       }
-      std::cout << "Moving to ";
       assert(best_target.x != -1 && best_target.y != -1);
       // Find the best first step to get to that location.
       distances = GetDistances(grid_, best_target);
@@ -203,16 +219,19 @@ void State::Step() {
         }
       }
       if (closest == 127) {
+        assert(!(x == 23 && y == 16));
         std::cout << "Can't move: no path.\n";
         continue;
       }
       assert(next_position.x != -1 && next_position.y != -1);
       // Move to the new location.
-      std::cout << next_position.x << "," << next_position.y << ".\n";
+      std::cout << "Moving to " << next_position.x << "," << next_position.y
+                << ".\n";
       grid_[y][x] = '.';
       grid_[next_position.y][next_position.x] = static_cast<char>(unit.type);
       unit.position = next_position;
     }
+    //std::cin.get();
   }
   constexpr auto is_dead = [](const auto& unit) { return unit.health == 0; };
   units_.erase(remove_if(begin(units_), end(units_), is_dead), end(units_));
@@ -242,15 +261,17 @@ std::vector<Position> State::AdjacentEnemies(Position position) const {
 
 bool State::done() const { return num_elves_ == 0 || num_goblins_ == 0; }
 
+int State::outcome() const {
+  int health = transform_reduce(begin(units_), end(units_), 0, std::plus<>(),
+                                [](Unit u) { return u.health; });
+  return health * (rounds_ - 1);
+}
+
 }  // namespace
 
 int Solve15A() {
   auto state = State::FromInput();
   state.Show();
-  while (!state.done()) {
-    state.Step();
-    state.Show();
-    std::cin.get();
-  }
-  return 0;
+  while (!state.done()) state.Step();
+  return state.outcome();
 }
