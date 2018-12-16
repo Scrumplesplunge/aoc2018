@@ -1,6 +1,3 @@
-// Wrong answer: 33
-// Wrong answer: 2
-
 #include "puzzles.h"
 
 #include <array>
@@ -13,22 +10,13 @@
 namespace {
 
 enum class Op : std::int8_t {
-  kAddr,
-  kAddi,
-  kMulr,
-  kMuli,
-  kBanr,
-  kBani,
-  kBorr,
-  kBori,
-  kSetr,
-  kSeti,
-  kGtir,
-  kGtri,
-  kGtrr,
-  kEqir,
-  kEqri,
-  kEqrr,
+  kAddr, kAddi,
+  kMulr, kMuli,
+  kBanr, kBani,
+  kBorr, kBori,
+  kSetr, kSeti,
+  kGtir, kGtri, kGtrr,
+  kEqir, kEqri, kEqrr,
 };
 
 constexpr Op& operator++(Op& op) {
@@ -39,10 +27,7 @@ using Register = std::int16_t;
 using Registers = std::array<Register, 4>;
 
 template <typename T>
-struct Instruction {
-  T op;
-  std::int8_t a, b, c;
-};
+struct Instruction { T op; std::int8_t a, b, c; };
 
 struct Sample {
   Instruction<std::int8_t> instruction;
@@ -55,104 +40,32 @@ using Mapping = std::array<std::array<bool, 16>, 16>;
 // map[x] is the op which is encoded by x.
 using Assignment = std::array<Op, 16>;
 
-std::ostream& operator<<(std::ostream& output, Op op) {
-  switch (op) {
-    case Op::kAddr:
-      return output << "addr";
-    case Op::kAddi:
-      return output << "addi";
-    case Op::kMulr:
-      return output << "mulr";
-    case Op::kMuli:
-      return output << "muli";
-    case Op::kBanr:
-      return output << "banr";
-    case Op::kBani:
-      return output << "bani";
-    case Op::kBorr:
-      return output << "borr";
-    case Op::kBori:
-      return output << "bori";
-    case Op::kSetr:
-      return output << "setr";
-    case Op::kSeti:
-      return output << "seti";
-    case Op::kGtir:
-      return output << "gtir";
-    case Op::kGtri:
-      return output << "gtri";
-    case Op::kGtrr:
-      return output << "gtrr";
-    case Op::kEqir:
-      return output << "eqir";
-    case Op::kEqri:
-      return output << "eqri";
-    case Op::kEqrr:
-      return output << "eqrr";
-    default:
-      return output << "badop";
-  }
-}
-
 constexpr Register CheckBounds(int x) {
   assert(std::numeric_limits<Register>::min() <= x);
   assert(x <= std::numeric_limits<Register>::max());
   return static_cast<Register>(x);
 }
 
-Registers Run(Instruction<Op> instruction, Registers registers) {
+Registers Run(Instruction<Op> instruction, Registers r) {
   auto [op, a, b, c] = instruction;
   switch (op) {
-    case Op::kAddr:
-      registers[c] = CheckBounds(registers[a] + registers[b]);
-      return registers;
-    case Op::kAddi:
-      registers[c] = CheckBounds(registers[a] + b);
-      return registers;
-    case Op::kMulr:
-      registers[c] = CheckBounds(registers[a] * registers[b]);
-      return registers;
-    case Op::kMuli:
-      registers[c] = CheckBounds(registers[a] * b);
-      return registers;
-    case Op::kBanr:
-      registers[c] = CheckBounds(registers[a] & registers[b]);
-      return registers;
-    case Op::kBani:
-      registers[c] = CheckBounds(registers[a] & b);
-      return registers;
-    case Op::kBorr:
-      registers[c] = CheckBounds(registers[a] | registers[b]);
-      return registers;
-    case Op::kBori:
-      registers[c] = CheckBounds(registers[a] | b);
-      return registers;
-    case Op::kSetr:
-      registers[c] = CheckBounds(registers[a]);
-      return registers;
-    case Op::kSeti:
-      registers[c] = CheckBounds(a);
-      return registers;
-    case Op::kGtir:
-      registers[c] = a > registers[b] ? 1 : 0;
-      return registers;
-    case Op::kGtri:
-      registers[c] = registers[a] > b ? 1 : 0;
-      return registers;
-    case Op::kGtrr:
-      registers[c] = registers[a] > registers[b] ? 1 : 0;
-      return registers;
-    case Op::kEqir:
-      registers[c] = a == registers[b] ? 1 : 0;
-      return registers;
-    case Op::kEqri:
-      registers[c] = registers[a] == b ? 1 : 0;
-      return registers;
-    case Op::kEqrr:
-      registers[c] = registers[a] == registers[b] ? 1 : 0;
-      return registers;
-    default:
-      assert(false);
+    case Op::kAddr: r[c] = CheckBounds(r[a] + r[b]); return r;
+    case Op::kAddi: r[c] = CheckBounds(r[a] + b); return r;
+    case Op::kMulr: r[c] = CheckBounds(r[a] * r[b]); return r;
+    case Op::kMuli: r[c] = CheckBounds(r[a] * b); return r;
+    case Op::kBanr: r[c] = CheckBounds(r[a] & r[b]); return r;
+    case Op::kBani: r[c] = CheckBounds(r[a] & b); return r;
+    case Op::kBorr: r[c] = CheckBounds(r[a] | r[b]); return r;
+    case Op::kBori: r[c] = CheckBounds(r[a] | b); return r;
+    case Op::kSetr: r[c] = CheckBounds(r[a]); return r;
+    case Op::kSeti: r[c] = CheckBounds(a); return r;
+    case Op::kGtir: r[c] = a > r[b] ? 1 : 0; return r;
+    case Op::kGtri: r[c] = r[a] > b ? 1 : 0; return r;
+    case Op::kGtrr: r[c] = r[a] > r[b] ? 1 : 0; return r;
+    case Op::kEqir: r[c] = a == r[b] ? 1 : 0; return r;
+    case Op::kEqri: r[c] = r[a] == b ? 1 : 0; return r;
+    case Op::kEqrr: r[c] = r[a] == r[b] ? 1 : 0; return r;
+    default: assert(false);
   }
 }
 
@@ -175,8 +88,6 @@ std::vector<Sample> GetSamples() {
   for (auto offset = kPuzzle16.find("Before: [");
        offset != std::string_view::npos;
        offset = kPuzzle16.find("Before: [", offset)) {
-    // std::cout << "Reading record:\n" << kPuzzle16.substr(offset, 55) <<
-    // "...\n";
     Sample sample = {};
     // Read the before state.
     for (int i = 0; i < 4; i++) {
@@ -193,15 +104,6 @@ std::vector<Sample> GetSamples() {
       sample.after[i] = kPuzzle16[offset + 9 + 3 * i] - '0';
       assert(0 <= sample.after[i] && sample.after[i] < 4);
     }
-    // std::cout << "Sample: [" << int{sample.before[0]} << ", "
-    //          << int{sample.before[1]} << ", " << int{sample.before[2]} << ",
-    //          "
-    //          << int{sample.before[3]} << "] -> [" << int{sample.after[0]}
-    //          << ", " << int{sample.after[1]} << ", " << int{sample.after[2]}
-    //          << ", " << int{sample.after[3]} << "] (??? "
-    //          << int{sample.instruction.a} << " " << int{sample.instruction.b}
-    //          << " " << int{sample.instruction.c} << ")\n";
-    // std::cin.get();
     samples.push_back(sample);
   }
   return samples;
@@ -226,7 +128,7 @@ std::vector<Instruction<Op>> GetProgram(const Assignment& assignment) {
 // consistent with the options that were ruled out. The assignment will only use
 // a permutation of ops already found in [prefix, 16).
 void FindAllAssignmentsImpl(const Mapping& ruled_out, Assignment& assignment,
-                           int prefix, std::set<Assignment>* output) {
+                            int prefix, std::set<Assignment>* output) {
   if (prefix == 16) {
     output->insert(assignment);
     return;
@@ -251,30 +153,14 @@ std::set<Assignment> FindAllAssignments(const Mapping& ruled_out) {
 
 int Solve16A() {
   int count = 0;
-  int num = 0;
   for (const Sample& sample : GetSamples()) {
-    num++;
-    // std::cout << "Sample " << num << ": [" << int{sample.before[0]} << ", "
-    //          << int{sample.before[1]} << ", " << int{sample.before[2]} << ",
-    //          "
-    //          << int{sample.before[3]} << "] -> [" << int{sample.after[0]}
-    //          << ", " << int{sample.after[1]} << ", " << int{sample.after[2]}
-    //          << ", " << int{sample.after[3]} << "] (??? "
-    //          << int{sample.instruction.a} << " " << int{sample.instruction.b}
-    //          << " " << int{sample.instruction.c} << ")\n";
     int possible_interpretations = 0;
     for (int i = 0; i < 16; i++) {
       auto op = static_cast<Op>(i);
       Instruction<Op> instruction{op, sample.instruction.a,
                                   sample.instruction.b, sample.instruction.c};
       auto result = Run(instruction, sample.before);
-      if (result == sample.after) {
-        // std::cout << "Sample " << num << " works for op=" << op << "\n";
-        possible_interpretations++;
-      } else {
-        // std::cout << "Sample " << num << " does not work for op=" << op <<
-        // "\n";
-      }
+      if (result == sample.after) possible_interpretations++;
     }
     if (possible_interpretations >= 3) count++;
   }
@@ -282,14 +168,13 @@ int Solve16A() {
 }
 
 int Solve16B() {
+  auto samples = GetSamples();
+
   // If we assume that operation op has code x and we subsequently see a sample
   // with code x that doesn't agree with what op should produce, we know that
   // our assumption was wrong. We can use this to rule out possible assignments.
-
   // ruled_out[op][x] is true if op can't have code x.
   Mapping ruled_out = {};
-
-  auto samples = GetSamples();
 
   // Draw observations from the samples.
   for (const Sample& sample : samples) {
@@ -305,27 +190,6 @@ int Solve16B() {
   auto assignments = FindAllAssignments(ruled_out);
   assert(assignments.size() == 1);
   auto assignment = *assignments.begin();
-
-#ifndef NDEBUG
-  // Check that the assignment is consistent.
-  for (const Sample& sample : samples) {
-    Instruction<Op> instruction{assignment[sample.instruction.op],
-                                sample.instruction.a, sample.instruction.b,
-                                sample.instruction.c};
-    assert(Run(instruction, sample.before) == sample.after);
-  }
-#endif  // NDEBUG
-
-  // std::cout << "Assignment:\n";
-  // for (const Assignment& assignment : assignments) {
-  //   for (int i = 0; i < 4; i++) {
-  //     for (int j = 0; j < 4; j++) {
-  //       int id = 4 * i + j;
-  //       std::cout << "[" << id << "] = " << assignment[id] << ",\t";
-  //     }
-  //     std::cout << "\n";
-  //   }
-  // }
 
   Registers registers = {};
   for (const auto& instruction : GetProgram(assignment))
