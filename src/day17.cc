@@ -23,6 +23,14 @@ enum class Cell : std::uint8_t {
   kWater = '~',
 };
 
+constexpr bool IsSupportCell(Cell cell) {
+  return cell == Cell::kClay || cell == Cell::kWater;
+}
+
+constexpr bool IsWaterCell(Cell cell) {
+  return cell == Cell::kFlowingWater || cell == Cell::kWater;
+}
+
 // Adding bounding boxes combines them into a single box that bounds their area.
 constexpr BoundingBox operator+(BoundingBox a, BoundingBox b) {
   return BoundingBox{std::min(a.x_min, b.x_min), std::min(a.y_min, b.y_min),
@@ -57,62 +65,55 @@ std::vector<BoundingBox> GetInput() {
   return input;
 }
 
-constexpr bool IsSupportCell(Cell cell) {
-  return cell == Cell::kClay || cell == Cell::kWater;
-}
+struct Grid {
+ public:
+  Grid(int width, int height)
+      : width_(width), height_(height), cells_(width * height, Cell::kSand) {}
+  Cell& operator()(int x, int y) { return cells_[y * width_ + x]; }
+  int width() const { return width_; }
+  int height() const { return height_; }
+  auto begin() { return cells_.begin(); }
+  auto end() { return cells_.end(); }
+ private:
+  int width_;
+  int height_;
+  std::vector<Cell> cells_;
+};
 
-constexpr bool IsWaterCell(Cell cell) {
-  return cell == Cell::kFlowingWater || cell == Cell::kWater;
-}
+struct GridData {
+  Grid grid;
+  Position spring;
+};
 
-std::vector<Cell> PerformFlow() {
-  Position spring{500, 0};
-  auto input = GetInput();
+GridData BuildGrid(std::vector<BoundingBox> input) {
   auto bounds = reduce(begin(input), end(input), input.front());
-  std::cout << "Bounds: [" << bounds.x_min << ", " << bounds.x_max << "] x ["
-            << bounds.y_min << ", " << bounds.y_max << "]\n";
   // We need one space either side of any clay to allow water to fall down.
+  Position offset{static_cast<std::int16_t>(bounds.x_min - 1), bounds.y_min};
   int width = 3 + bounds.x_max - bounds.x_min;
   int height = 1 + bounds.y_max - bounds.y_min;
-  // Move the data to a grid starting at 0,0
-  spring.x -= bounds.x_min - 1;  // no need to adjust y, it'd just be discounted.
+  Grid grid{width, height};
   for (auto& vein : input) {
-    vein.x_min -= bounds.x_min - 1;
-    vein.y_min -= bounds.y_min;
-    vein.x_max -= bounds.x_min - 1;
-    vein.y_max -= bounds.y_min;
+    vein.x_min -= offset.x;
+    vein.y_min -= offset.y;
+    vein.x_max -= offset.x;
+    vein.y_max -= offset.y;
   }
   assert(width < 2000);
   assert(height < 2000);
-  std::vector<Cell> grid_data(width * height, Cell::kSand);
-  auto grid = [&](int x, int y) -> Cell& { return grid_data[y * width + x]; };
-  // auto debug = [&](int cx, int cy) {
-  //   constexpr int kContext = 10;
-  //   int x_min = std::max(0, cx - kContext);
-  //   int y_min = std::max(0, cy - kContext);
-  //   int x_max = std::min(width, cx + kContext);
-  //   int y_max = std::min(height, cy + kContext);
-  //   for (int y = y_min; y < y_max; y++) {
-  //     const char* first =
-  //         reinterpret_cast<const char*>(grid_data.data() + y * width);
-  //     if (y == cy) {
-  //       std::cout.write(first + x_min, cx - x_min);
-  //       std::cout << "\x1b[32m" << first[cx] << "\x1b[0m";
-  //       std::cout.write(first + cx - x_min + 1, x_max - cx - 1);
-  //     } else {
-  //       std::cout.write(first + x_min, x_max - x_min);
-  //     }
-  //     std::cout << '\n';
-  //   }
-  //   std::cin.get();
-  // };
   // Put the clay onto an image.
   for (auto vein : input) {
     for (int y = vein.y_min; y <= vein.y_max; y++) {
       for (int x = vein.x_min; x <= vein.x_max; x++) grid(x, y) = Cell::kClay;
     }
   }
+  // Add the spring.
+  Position spring{static_cast<std::int16_t>(500 - offset.x), 0};
   grid(spring.x, spring.y) = Cell::kFlowingWater;
+  return GridData{std::move(grid), spring};
+}
+
+void PerformFlow(GridData* grid_data) {
+  auto& [grid, spring] = *grid_data;
   // All flows that have yet to be fully evaluated.
   std::queue<Position> flows;
   flows.push(spring);
@@ -121,11 +122,11 @@ std::vector<Cell> PerformFlow() {
     flows.pop();
     // Follow the flow vertically downwards until it hits something.
     std::int16_t y = flow.y + 1;
-    while (y < height && grid(flow.x, y) == Cell::kSand) {
+    while (y < grid.height() && grid(flow.x, y) == Cell::kSand) {
       grid(flow.x, y) = Cell::kFlowingWater;
       y++;
     }
-    if (y == height) continue;  // Hit the bottom; this flow is done.
+    if (y == grid.height()) continue;  // Hit the bottom; this flow is done.
     if (grid(flow.x, y) == Cell::kFlowingWater) continue;  // Already flowing.
     y--;  // Check if water can pool above the surface that it hit.
     for (; 0 <= y; y--) {
@@ -140,7 +141,6 @@ std::vector<Cell> PerformFlow() {
         // If there's no support underneath, the water can't extend sideways.
         if (!IsSupportCell(grid(x_min, y + 1))) break;
         x_min--;
-        //debug(x_min, y);
       }
       auto x_max = flow.x;
       while (true) {
@@ -151,10 +151,9 @@ std::vector<Cell> PerformFlow() {
         // If there's no support underneath, the water can't extend sideways.
         if (!IsSupportCell(grid(x_max, y + 1))) break;
         x_max++;
-        //debug(x_max, y);
       }
       // If the water reached the edge, it flows off and can't pool.
-      if (x_min == -1 || x_max == width) break;
+      if (x_min == -1 || x_max == grid.width()) break;
       // If the block underneath each end is not a support block, the water
       // flows down instead of pooling.
       bool supported = true;
@@ -171,20 +170,22 @@ std::vector<Cell> PerformFlow() {
       if (grid(x_min, y) != Cell::kClay || grid(x_max, y) != Cell::kClay) break;
       // Water filled a level, we keep filling.
       for (auto x = x_min + 1; x < x_max; x++) grid(x, y) = Cell::kWater;
-      //debug(flow.x, y);
     }
   }
-  return grid_data;
 }
 
 }  // namespace
 
 int Solve17A() {
-  auto grid_data = PerformFlow();
-  return count_if(begin(grid_data), end(grid_data), IsWaterCell);
+  auto grid_data = BuildGrid(GetInput());
+  PerformFlow(&grid_data);
+  return count_if(std::begin(grid_data.grid), std::end(grid_data.grid),
+                  IsWaterCell);
 }
 
 int Solve17B() {
-  auto grid_data = PerformFlow();
-  return count(begin(grid_data), end(grid_data), Cell::kWater);
+  auto grid_data = BuildGrid(GetInput());
+  PerformFlow(&grid_data);
+  return count(std::begin(grid_data.grid), std::end(grid_data.grid),
+               Cell::kWater);
 }
