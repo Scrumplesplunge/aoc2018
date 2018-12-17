@@ -65,9 +65,7 @@ constexpr bool IsWaterCell(Cell cell) {
   return cell == Cell::kFlowingWater || cell == Cell::kWater;
 }
 
-}  // namespace
-
-int Solve17A() {
+std::vector<Cell> PerformFlow() {
   Position spring{500, 0};
   auto input = GetInput();
   auto bounds = reduce(begin(input), end(input), input.front());
@@ -88,26 +86,26 @@ int Solve17A() {
   assert(height < 2000);
   std::vector<Cell> grid_data(width * height, Cell::kSand);
   auto grid = [&](int x, int y) -> Cell& { return grid_data[y * width + x]; };
-  auto debug = [&](int cx, int cy) {
-    constexpr int kContext = 10;
-    int x_min = std::max(0, cx - kContext);
-    int y_min = std::max(0, cy - kContext);
-    int x_max = std::min(width, cx + kContext);
-    int y_max = std::min(height, cy + kContext);
-    for (int y = y_min; y < y_max; y++) {
-      const char* first =
-          reinterpret_cast<const char*>(grid_data.data() + y * width);
-      if (y == cy) {
-        std::cout.write(first + x_min, cx - x_min);
-        std::cout << "\x1b[32m" << first[cx] << "\x1b[0m";
-        std::cout.write(first + cx - x_min + 1, x_max - cx - 1);
-      } else {
-        std::cout.write(first + x_min, x_max - x_min);
-      }
-      std::cout << '\n';
-    }
-    std::cin.get();
-  };
+  // auto debug = [&](int cx, int cy) {
+  //   constexpr int kContext = 10;
+  //   int x_min = std::max(0, cx - kContext);
+  //   int y_min = std::max(0, cy - kContext);
+  //   int x_max = std::min(width, cx + kContext);
+  //   int y_max = std::min(height, cy + kContext);
+  //   for (int y = y_min; y < y_max; y++) {
+  //     const char* first =
+  //         reinterpret_cast<const char*>(grid_data.data() + y * width);
+  //     if (y == cy) {
+  //       std::cout.write(first + x_min, cx - x_min);
+  //       std::cout << "\x1b[32m" << first[cx] << "\x1b[0m";
+  //       std::cout.write(first + cx - x_min + 1, x_max - cx - 1);
+  //     } else {
+  //       std::cout.write(first + x_min, x_max - x_min);
+  //     }
+  //     std::cout << '\n';
+  //   }
+  //   std::cin.get();
+  // };
   // Put the clay onto an image.
   for (auto vein : input) {
     for (int y = vein.y_min; y <= vein.y_max; y++) {
@@ -176,5 +174,17 @@ int Solve17A() {
       //debug(flow.x, y);
     }
   }
+  return grid_data;
+}
+
+}  // namespace
+
+int Solve17A() {
+  auto grid_data = PerformFlow();
   return count_if(begin(grid_data), end(grid_data), IsWaterCell);
+}
+
+int Solve17B() {
+  auto grid_data = PerformFlow();
+  return count(begin(grid_data), end(grid_data), Cell::kWater);
 }
