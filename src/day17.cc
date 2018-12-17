@@ -97,7 +97,13 @@ int Solve17A() {
     for (int y = y_min; y < y_max; y++) {
       const char* first =
           reinterpret_cast<const char*>(grid_data.data() + y * width);
-      std::cout.write(first + x_min, x_max - x_min);
+      if (y == cy) {
+        std::cout.write(first + x_min, cx - x_min);
+        std::cout << "\x1b[32m" << first[cx] << "\x1b[0m";
+        std::cout.write(first + cx - x_min + 1, x_max - cx - 1);
+      } else {
+        std::cout.write(first + x_min, x_max - x_min);
+      }
       std::cout << '\n';
     }
     std::cin.get();
@@ -115,7 +121,6 @@ int Solve17A() {
   while (!flows.empty()) {
     Position flow = flows.front();
     flows.pop();
-    std::cout << "Source " << flow.x << ", " << flow.y << "\n";
     // Follow the flow vertically downwards until it hits something.
     std::int16_t y = flow.y + 1;
     while (y < height && grid(flow.x, y) == Cell::kSand) {
@@ -123,31 +128,32 @@ int Solve17A() {
       y++;
     }
     if (y == height) continue;  // Hit the bottom; this flow is done.
+    if (grid(flow.x, y) == Cell::kFlowingWater) continue;  // Already flowing.
     y--;  // Check if water can pool above the surface that it hit.
     for (; 0 <= y; y--) {
       // Water can spread left and right as long as it is supported from below
       // by either kClay or kWater.
-      auto x_min = flow.x - 1;
+      auto x_min = flow.x;
       while (true) {
         if (x_min < 0) break;  // Can't flow any further.
         auto& cell = grid(x_min, y);
-        if (cell != Cell::kSand) break;  // Can't fill this square.
+        if (IsSupportCell(cell)) break;  // Can't fill this square.
         cell = Cell::kFlowingWater;
         // If there's no support underneath, the water can't extend sideways.
         if (!IsSupportCell(grid(x_min, y + 1))) break;
         x_min--;
-        debug(x_min, y);
+        //debug(x_min, y);
       }
-      auto x_max = flow.x + 1;
+      auto x_max = flow.x;
       while (true) {
         if (x_max < 0) break;  // Can't flow any further.
         auto& cell = grid(x_max, y);
-        if (cell != Cell::kSand) break;  // Can't fill this square.
+        if (IsSupportCell(cell)) break;  // Can't fill this square.
         cell = Cell::kFlowingWater;
         // If there's no support underneath, the water can't extend sideways.
         if (!IsSupportCell(grid(x_max, y + 1))) break;
         x_max++;
-        debug(x_max, y);
+        //debug(x_max, y);
       }
       // If the water reached the edge, it flows off and can't pool.
       if (x_min == -1 || x_max == width) break;
@@ -156,12 +162,10 @@ int Solve17A() {
       bool supported = true;
       if (!IsSupportCell(grid(x_min, y + 1))) {
         supported = false;
-        std::cout << "not supported left\n";
         flows.push(Position{static_cast<std::int16_t>(x_min), y});
       }
       if (!IsSupportCell(grid(x_max, y + 1))) {
         supported = false;
-        std::cout << "not supported right\n";
         flows.push(Position{static_cast<std::int16_t>(x_max), y});
       }
       if (!supported) break;
@@ -169,7 +173,7 @@ int Solve17A() {
       if (grid(x_min, y) != Cell::kClay || grid(x_max, y) != Cell::kClay) break;
       // Water filled a level, we keep filling.
       for (auto x = x_min + 1; x < x_max; x++) grid(x, y) = Cell::kWater;
-      debug(flow.x, y);
+      //debug(flow.x, y);
     }
   }
   return count_if(begin(grid_data), end(grid_data), IsWaterCell);
