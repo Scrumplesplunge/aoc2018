@@ -1,14 +1,11 @@
-// Part A Wrong answer: 1409184
-// Part B Wrong answer: 219834 (too high)
-//                      219240 (too high)
-//                      212706 (too high)
-
 #include "puzzles.h"
 
 #include <algorithm>
 #include <array>
 #include <iostream>
 #include <vector>
+
+namespace {
 
 enum class Cell : char { kOpen = '.', kTrees = '|', kLumberYard = '#' };
 
@@ -50,35 +47,25 @@ int CountAdjacent(const Grid& grid, int cx, int cy, Cell target) {
 void Step(const Grid& before, Grid& after) {
   for (int y = 0; y < kGridHeight; y++) {
     for (int x = 0; x < kGridWidth; x++) {
-      auto neighbours = [&](Cell type) {
-        return CountAdjacent(before, x, y, type);
-      };
       switch (before[y][x]) {
         case Cell::kOpen:
-          after[y][x] =
-              neighbours(Cell::kTrees) >= 3 ? Cell::kTrees : Cell::kOpen;
+          after[y][x] = CountAdjacent(before, x, y, Cell::kTrees) >= 3
+                            ? Cell::kTrees
+                            : Cell::kOpen;
           break;
         case Cell::kTrees:
-          after[y][x] = neighbours(Cell::kLumberYard) >= 3 ? Cell::kLumberYard
-                                                           : Cell::kTrees;
+          after[y][x] = CountAdjacent(before, x, y, Cell::kLumberYard) >= 3
+                            ? Cell::kLumberYard
+                            : Cell::kTrees;
           break;
         case Cell::kLumberYard:
-          after[y][x] = neighbours(Cell::kLumberYard) >= 1 &&
-                                neighbours(Cell::kTrees) >= 1
+          after[y][x] = CountAdjacent(before, x, y, Cell::kLumberYard) >= 1 &&
+                                CountAdjacent(before, x, y, Cell::kTrees) >= 1
                             ? Cell::kLumberYard
                             : Cell::kOpen;
           break;
       }
     }
-  }
-}
-
-void Print(const Grid& grid) {
-  for (int y = 0; y < kGridHeight; y++) {
-    const char* first = reinterpret_cast<const char*>(&grid[y][0]);
-    const char* last = reinterpret_cast<const char*>(&grid[y][kGridWidth]);
-    std::cout.write(first, last - first);
-    std::cout << '\n';
   }
 }
 
@@ -90,6 +77,8 @@ int Value(const Grid& grid) {
   return num_trees * num_lumber_yards;
 }
 
+}  // namespace
+
 int Solve18A() {
   Grid grids[2] = {GetInput(), {}};
   for (int i = 0; i < 10; i++) Step(grids[i % 2], grids[(i + 1) % 2]);
@@ -99,7 +88,6 @@ int Solve18A() {
 
 int Solve18B() {
   std::vector<Grid> previous;
-
   Grid grids[2] = {GetInput(), {}};
   constexpr int kMaxSearchSize = 1000;  // How long to search for a cycle.
   for (int i = 0; i < kMaxSearchSize; i++) {
