@@ -1,0 +1,39 @@
+// The code roughly translates into this, with target=r0:
+void thing(int target) {
+  int a = 0, b = 0;
+  do {
+    a = (b | 0x10000);
+    b = 10362650;
+    while (true) {
+      b = (b + (a & 0xFF)) & 0xFFFFFF;
+      b = (b * 65899) & 0xFFFFFF;
+      if (256 > a) break;
+      a /= 256;
+    }
+  } while (b != target);
+}
+
+// The solution to part A is just to run the outer loop once and pick the target
+// which matches the value of b.
+
+// The solution to part B is to iterate until the same value is seen twice
+// (meaning that we won't see any new values) and then pick the last new value
+// which we saw (since this is the value which will take longest to reach).
+function thing() {
+  var a = 0, b = 0;
+  var seen = new Set;
+  var last = -1;
+  do {
+    a = (b | 0x10000);
+    b = 10362650;
+    while (true) {
+      b = (b + (a & 0xFF)) & 0xFFFFFF;
+      b = (b * 65899) & 0xFFFFFF;
+      if (256 > a) break;
+      a /= 256;
+    }
+    if (seen.has(b)) return last;
+    seen.add(b);
+    last = b;
+  } while (true);
+}
