@@ -47,6 +47,9 @@ Input GetInput() {
   int x = svtoi(kPuzzle22.substr(target_label + 8));
   auto comma = kPuzzle22.find(',', target_label);
   int y = svtoi(kPuzzle22.substr(comma + 1));
+  assert(0 <= depth && depth < 20183);
+  assert(0 < x);
+  assert(0 < y);
   return Input{depth, {x, y}};
 }
 
@@ -83,9 +86,6 @@ struct std::hash<Configuration> {
 
 int Solve22A() {
   auto [depth, target] = GetInput();
-  assert(0 <= depth && depth < 20183);
-  assert(0 < target.x);
-  assert(0 < target.y);
   std::vector<int> row;
   row.reserve(target.x + 1);
   row.push_back(depth);
@@ -116,9 +116,6 @@ int Solve22A() {
 
 int Solve22B() {
   auto [depth, target] = GetInput();
-  assert(0 <= depth && depth < 20183);
-  assert(0 < target.x);
-  assert(0 < target.y);
   // Build the grid.
   int grid_width = std::max(target.x, target.y) + 10;
   int grid_height = std::max(target.x, target.y) + 10;
