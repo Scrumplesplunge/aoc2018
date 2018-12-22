@@ -144,20 +144,18 @@ int Solve22B() {
   auto cell = [&](int x, int y) { return Cell(grid[y * grid_width + x] % 3); };
   // Search for the cell.
   std::unordered_set<Configuration> explored;
-  struct Node { short time; Configuration configuration; };
-  auto cost = [target=target](const Node& node) {
-    const auto& [position, tool] = node.configuration;
-    const int min_travel_time =
-        abs(target.x - position.x) + abs(target.y - position.y);
-    const int tool_switch_time = tool == kTorch ? 0 : 7;
-    return node.time + min_travel_time + tool_switch_time;
+  struct Node { short time, cost; Configuration configuration; };
+  auto make_node = [target=target](short time, Configuration configuration) {
+    const auto& [pos, tool] = configuration;
+    int min_travel_time = abs(target.x - pos.x) + abs(target.y - pos.y);
+    int tool_switch_time = tool == kTorch ? 0 : 7;
+    short cost = time + min_travel_time + tool_switch_time;
+    return Node{time, cost, configuration};
   };
-  auto by_cost = [&](const Node& a, const Node& b) {
-    return cost(a) > cost(b);
-  };
+  auto by_cost = [](const Node& a, const Node& b) { return a.cost > b.cost; };
   std::priority_queue<Node, std::vector<Node>, decltype(by_cost)> frontier{
       by_cost};
-  frontier.push(Node{0, Configuration{{0, 0}, kTorch}}); //, {}});
+  frontier.push(make_node(0, Configuration{{0, 0}, kTorch})); //, {}});
   while (true) {
     assert(!frontier.empty());
     Node node = frontier.top();
@@ -176,8 +174,7 @@ int Solve22B() {
         if (!Compatible(current_cell, t)) continue;  // Can't switch to tool.
         short time = node.time + 1;
         if (t != node.configuration.tool) time += 7;
-        Node new_node{time, {p, t}};
-        frontier.push(new_node);
+        frontier.push(make_node(time, {p, t}));
       }
     }
   }
