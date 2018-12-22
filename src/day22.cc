@@ -4,7 +4,7 @@
 #include <iostream>
 #include <numeric>
 #include <queue>
-#include <set>
+#include <unordered_set>
 #include <vector>
 
 namespace {
@@ -17,16 +17,22 @@ int svtoi(std::string_view input) {
   return result;
 }
 
-struct Position { int x, y; };
-struct Input { int depth; Position target; };
-enum Cell { kRocky, kWet, kNarrow };
-enum Tool { kTorch, kClimbingGear, kNeither };
-struct Configuration { Position position; Tool tool; };
+struct Position {
+  using Dimension = short;
+  using Limits = std::numeric_limits<Dimension>;
+  constexpr Position(int ix, int iy) {
+    assert(Limits::min() <= ix && ix <= Limits::max());
+    assert(Limits::min() <= iy && iy <= Limits::max());
+    x = ix;
+    y = iy;
+  }
+  Dimension x = 0, y = 0;
+};
 
-constexpr bool operator<(Configuration a, Configuration b) {
-  return std::tie(a.position.x, a.position.y, a.tool) <
-         std::tie(b.position.x, b.position.y, b.tool);
-}
+struct Input { int depth; Position target; };
+enum Cell : std::int8_t { kRocky, kWet, kNarrow };
+enum Tool : std::int8_t { kTorch, kClimbingGear, kNeither };
+struct Configuration { Position position; Tool tool; };
 
 constexpr bool operator==(Configuration a, Configuration b) {
   return a.position.x == b.position.x && a.position.y == b.position.y &&
@@ -66,6 +72,15 @@ constexpr bool Compatible(Cell cell, Tool tool) {
 
 }  // namespace
 
+template <>
+struct std::hash<Configuration> {
+  constexpr std::size_t operator()(Configuration configuration) const {
+    return (configuration.position.x * 107) ^
+           (configuration.position.y * 5) ^
+           configuration.tool;
+  }
+};
+
 int Solve22A() {
   auto [depth, target] = GetInput();
   assert(0 <= depth && depth < 20183);
@@ -79,15 +94,6 @@ int Solve22A() {
   }
   std::cout << '\n';
   auto row_risk = [&] {
-    //for (auto x : row) {
-      //std::cout << x << ' ';
-      //switch (Cell(x % 3)) {
-      //  case Cell::kRocky: std::cout << '.'; break;
-      //  case Cell::kWet: std::cout << '='; break;
-      //  case Cell::kNarrow: std::cout << '|'; break;
-      //}
-    //}
-    //std::cout << '\n';
     return transform_reduce(
         begin(row), end(row), 0, std::plus<>(), [](auto x) { return x % 3; });
   };
@@ -105,8 +111,6 @@ int Solve22A() {
     }
     risk_total += row_risk();
   }
-  // 9041 too high.
-  // 7531 too high.
   return risk_total;
 }
 
@@ -116,15 +120,14 @@ int Solve22B() {
   assert(0 < target.x);
   assert(0 < target.y);
   // Build the grid.
-  int grid_width = std::max(target.x, target.y) + 100;
-  int grid_height = std::max(target.x, target.y) + 100;
+  int grid_width = std::max(target.x, target.y) + 10;
+  int grid_height = std::max(target.x, target.y) + 10;
   assert(grid_width * grid_height < 10'000'000);
-  std::vector<int> grid;
+  std::vector<short> grid;
   grid.reserve(grid_width * grid_height);
   grid.push_back(depth);
-  for (int x = 1; x < grid_width; x++) {
+  for (int x = 1; x < grid_width; x++)
     grid.push_back((x * 16807 + depth) % 20183);
-  }
   for (int y = 1; y < grid_height; y++) {
     int offset = grid_width * y;
     grid.push_back((y * 48271 + depth) % 20183);
@@ -140,11 +143,8 @@ int Solve22B() {
   }
   auto cell = [&](int x, int y) { return Cell(grid[y * grid_width + x] % 3); };
   // Search for the cell.
-  std::set<Configuration> explored;
-  struct Node {
-    Configuration configuration; int time;
-    //std::vector<Configuration> path;
-  };
+  std::unordered_set<Configuration> explored;
+  struct Node { short time; Configuration configuration; };
   auto cost = [target=target](const Node& node) {
     const auto& [position, tool] = node.configuration;
     const int min_travel_time =
@@ -157,21 +157,12 @@ int Solve22B() {
   };
   std::priority_queue<Node, std::vector<Node>, decltype(by_cost)> frontier{
       by_cost};
-  frontier.push(Node{Configuration{{0, 0}, kTorch}, 0}); //, {}});
+  frontier.push(Node{0, Configuration{{0, 0}, kTorch}}); //, {}});
   while (true) {
     assert(!frontier.empty());
     Node node = frontier.top();
-    // std::cout << "n{c{x=" << node.configuration.position.x << ",y="
-    //           << node.configuration.position.y << "},tool="
-    //           << node.configuration.tool << "},time=" << node.time << "}\n";
     frontier.pop();
-    if (node.configuration == Configuration{target, kTorch}) {
-      //std::cout << "Path:\n";
-      //for (const auto& [position, tool] : node.path)
-      //  std::cout << "[" << position.x << "," << position.y << "] tool="
-      //            << tool << "\n";
-      return node.time;
-    }
+    if (node.configuration == Configuration{target, kTorch}) return node.time;
     auto [i, was_inserted] = explored.insert(node.configuration);
     if (!was_inserted) continue;  // Already explored.
     Cell current_cell =
@@ -183,14 +174,11 @@ int Solve22B() {
       assert(p.y < grid_height);
       for (Tool t : CompatibleTools(cell(p.x, p.y))) {
         if (!Compatible(current_cell, t)) continue;  // Can't switch to tool.
-        int time = node.time + 1;
+        short time = node.time + 1;
         if (t != node.configuration.tool) time += 7;
-        Node new_node{{p, t}, time};  //, node.path};
-        // new_node.path.push_back(node.configuration);
+        Node new_node{time, {p, t}};
         frontier.push(new_node);
       }
     }
   }
-  // 821 too low
-  // 1018 too low
 }
