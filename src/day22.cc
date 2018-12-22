@@ -92,7 +92,6 @@ int Solve22A() {
   for (int x = 1; x <= target.x; x++) {
     row.push_back((x * 16807 + depth) % 20183);
   }
-  std::cout << '\n';
   auto row_risk = [&] {
     return transform_reduce(
         begin(row), end(row), 0, std::plus<>(), [](auto x) { return x % 3; });
@@ -152,7 +151,7 @@ int Solve22B() {
   auto by_cost = [](const Node& a, const Node& b) { return a.cost > b.cost; };
   std::priority_queue<Node, std::vector<Node>, decltype(by_cost)> frontier{
       by_cost};
-  frontier.push(make_node(0, Configuration{{0, 0}, kTorch})); //, {}});
+  frontier.push(make_node(0, Configuration{{0, 0}, kTorch}));
   while (true) {
     assert(!frontier.empty());
     Node node = frontier.top();
