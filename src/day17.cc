@@ -2,6 +2,8 @@
 
 #include "puzzles.h"
 
+#include "vec2.h"
+
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
@@ -15,7 +17,7 @@
 namespace {
 
 struct BoundingBox { std::int16_t x_min, y_min, x_max, y_max; };
-struct Position { std::int16_t x, y; };
+using Position = vec2<std::int16_t>;
 
 enum class Cell : std::uint8_t {
   kSand = '.',

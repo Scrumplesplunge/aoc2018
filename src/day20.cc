@@ -1,4 +1,5 @@
 #include "puzzles.h"
+#include "vec2.h"
 
 #include <algorithm>
 #include <cassert>
@@ -18,23 +19,9 @@ enum class Cell {
 };
 
 using Dimension = int;
-struct Position { Dimension x, y; };
+using Position = vec2<Dimension>;
 
-constexpr bool operator<(Position a, Position b) {
-  return std::tie(a.y, a.x) < std::tie(b.y, b.x);
-}
-
-constexpr bool operator==(Position a, Position b) {
-  return a.x == b.x && a.y == b.y;
-}
-
-struct Hash {
-  constexpr auto operator()(Position p) const {
-    return (p.x * 19) ^ (p.y * 37);
-  }
-};
-
-using Grid = std::unordered_map<Position, Cell, Hash>;
+using Grid = std::unordered_map<Position, Cell>;
 
 constexpr bool IsDirection(char c) {
   return c == 'N' || c == 'E' || c == 'S' || c == 'W';
@@ -120,7 +107,7 @@ MeasureResult MeasurePaths(const Grid& grid, Position start) {
   struct Node { Position position; int distance; };
   int num_long_paths = 0;
   int furthest_distance = 0;
-  std::unordered_set<Position, Hash> visited;
+  std::unordered_set<Position> visited;
   std::queue<Node> positions;
   positions.push({start, 0});
   while (!positions.empty()) {

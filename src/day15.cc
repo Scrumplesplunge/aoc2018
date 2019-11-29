@@ -1,5 +1,7 @@
 #include "puzzles.h"
 
+#include "vec2.h"
+
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -19,7 +21,7 @@ constexpr int kGridHeight = 32;
 constexpr int kStartingHealth = 200;
 
 enum class UnitType : char { kElf = 'E', kGoblin = 'G' };
-struct Position { std::int8_t x, y; };
+using Position = vec2<std::int8_t>;
 using Grid = std::array<std::array<std::int8_t, kGridWidth>, kGridHeight>;
 
 struct Unit {
@@ -51,14 +53,6 @@ class State {
   int num_goblins_ = 0;
   int elf_attack_damage_ = 3;
 };
-
-constexpr bool operator<(Position a, Position b) {
-  return std::tie(a.y, a.x) < std::tie(b.y, b.x);
-}
-
-constexpr bool operator==(Position a, Position b) {
-  return std::tie(a.y, a.x) == std::tie(b.y, b.x);
-}
 
 constexpr bool operator<(Unit a, Unit b) { return a.position < b.position; }
 

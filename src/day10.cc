@@ -1,5 +1,7 @@
 #include "puzzles.h"
 
+#include "vec2.h"
+
 #include <cassert>
 #include <iostream>
 #include <sstream>
@@ -8,7 +10,7 @@
 #include <vector>
 #include <string>
 
-struct Vector { int x, y; };
+using Vector = vec2<int>;
 struct Point { Vector position, velocity; };
 
 struct BoundingBox {
@@ -18,18 +20,6 @@ struct BoundingBox {
 
 constexpr long area(const BoundingBox& box) {
   return long{box.max.x - box.min.x} * long{box.max.y - box.min.y};
-}
-
-constexpr Vector operator+(Vector a, Vector b) {
-  return Vector{a.x + b.x, a.y + b.y};
-}
-
-constexpr Vector operator-(Vector a, Vector b) {
-  return Vector{a.x - b.x, a.y - b.y};
-}
-
-constexpr Vector operator*(Vector a, int b) {
-  return Vector{a.x * b, a.y * b};
 }
 
 constexpr Vector at(Point p, int time) {

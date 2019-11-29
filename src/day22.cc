@@ -1,5 +1,7 @@
 #include "puzzles.h"
 
+#include "vec2.h"
+
 #include <array>
 #include <cassert>
 #include <iostream>
@@ -19,17 +21,7 @@ int svtoi(std::string_view input) {
   return result;
 }
 
-struct Position {
-  using Dimension = short;
-  using Limits = std::numeric_limits<Dimension>;
-  constexpr Position(int ix, int iy) {
-    assert(Limits::min() <= ix && ix <= Limits::max());
-    assert(Limits::min() <= iy && iy <= Limits::max());
-    x = ix;
-    y = iy;
-  }
-  Dimension x = 0, y = 0;
-};
+using Position = vec2<short>;
 
 struct Input { int depth; Position target; };
 enum Cell : std::int8_t { kRocky, kWet, kNarrow };
@@ -37,8 +29,7 @@ enum Tool : std::int8_t { kTorch, kClimbingGear, kNeither };
 struct Configuration { Position position; Tool tool; };
 
 constexpr bool operator==(Configuration a, Configuration b) {
-  return a.position.x == b.position.x && a.position.y == b.position.y &&
-         a.tool == b.tool;
+  return a.position == b.position && a.tool == b.tool;
 }
 
 Input GetInput() {

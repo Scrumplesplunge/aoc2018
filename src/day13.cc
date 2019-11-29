@@ -1,5 +1,7 @@
 #include "puzzles.h"
 
+#include "vec2.h"
+
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -17,7 +19,7 @@ using Grid = std::array<std::array<char, kGridWidth>, kGridHeight>;
 
 enum class Direction : unsigned char { kUp, kRight, kDown, kLeft };
 enum class Choice : unsigned char { kLeft, kStraight, kRight };
-struct Position { unsigned char x, y; };
+using Position = vec2<unsigned char>;
 struct Cart { Position position; Direction direction; Choice next_choice; };
 struct Input { Grid grid; std::vector<Cart> carts; };
 
@@ -48,14 +50,9 @@ constexpr Choice operator++(Choice& value, int) {
   return old;
 }
 
-constexpr bool operator==(Position a, Position b) {
-  return a.x == b.x && a.y == b.y;
-}
-
 // Order carts such that top left < top right < bottom left < bottom right.
 constexpr bool operator<(Cart a, Cart b) {
-  return std::tie(a.position.y, a.position.x) <
-         std::tie(b.position.y, b.position.x);
+  return a.position < b.position;
 }
 
 constexpr bool operator==(Cart a, Cart b) {
