@@ -1,0 +1,52 @@
+Solve1A: 435
+Solve1B: 245
+Solve2A: 4980
+Solve2B: qysdtrkloagnfozuwujmhrbvx
+Solve3A: 109716
+Solve3B: 124
+Solve4A: 94542
+Solve4B: 50966
+Solve5A: 9078
+Solve5B: 5698
+Solve6A: 3290
+Solve6B: 45602
+Solve7A: GRTAHKLQVYWXMUBCZPIJFEDNSO
+Solve7B: 1115
+Solve8A: 38780
+Solve8B: 18232
+Solve9A: 412127
+Solve9B: 3482394794
+Solve10A: 
+######  #    #    ##    #       #       #    #  #       ##### 
+#       #   #    #  #   #       #       #   #   #       #    #
+#       #  #    #    #  #       #       #  #    #       #    #
+#       # #     #    #  #       #       # #     #       #    #
+#####   ##      #    #  #       #       ##      #       ##### 
+#       ##      ######  #       #       ##      #       #    #
+#       # #     #    #  #       #       # #     #       #    #
+#       #  #    #    #  #       #       #  #    #       #    #
+#       #   #   #    #  #       #       #   #   #       #    #
+######  #    #  #    #  ######  ######  #    #  ######  ##### 
+
+Solve10B: 10227
+Solve11A: 235,60
+Solve11B: 233,282,11
+Solve12A: 2767
+Solve12B: 2650000001362
+Solve13A: 116,10
+Solve13B: 116,25
+Solve14A: 2776141917
+Solve14B: 20331097
+Solve15A: 206236
+Solve15B: 88537
+Solve16A: 663
+Solve16B: 525
+Solve17A: 39162
+Solve17B: 32047
+Solve18A: 384480
+Solve18B: 177004
+Solve20A: 3512
+Solve20B: 8660
+Solve22A: 7402
+Solve22B: 1025
+Solve23A: 713

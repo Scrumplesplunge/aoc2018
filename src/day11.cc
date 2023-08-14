@@ -42,7 +42,7 @@ class Grid {
   }
 
  private:
-  std::array<std::array<short, 301>, 301> grid_;
+  std::array<std::array<int, 301>, 301> grid_;
 };
 
 }  // namespace
