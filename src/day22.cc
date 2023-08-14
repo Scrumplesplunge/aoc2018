@@ -1,7 +1,9 @@
 #include "puzzles.h"
 
 #include <array>
+#include <cassert>
 #include <iostream>
+#include <limits>
 #include <numeric>
 #include <queue>
 #include <unordered_set>

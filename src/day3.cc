@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cassert>
+#include <iterator>
 #include <iostream>
 #include <regex>
 #include <sstream>

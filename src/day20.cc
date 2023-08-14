@@ -1,5 +1,7 @@
 #include "puzzles.h"
 
+#include <algorithm>
+#include <cassert>
 #include <iostream>
 #include <queue>
 #include <unordered_set>
