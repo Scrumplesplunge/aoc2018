@@ -53,7 +53,6 @@ int Solve5A() {
 }
 
 int Solve5B() {
-  char best = '?';
   int best_length = kPuzzle5.length();
   for (char c = 'a'; c <= 'z'; c++) {
     std::string polymer{kTrimmedPuzzle};
@@ -61,9 +60,8 @@ int Solve5B() {
       return (c2 | kLowerCaseBit) == c;
     });
     polymer.erase(i, end(polymer));
-    int length = React(move(polymer));
+    int length = React(std::move(polymer));
     if (length < best_length) {
-      best = c;
       best_length = length;
     }
   }
